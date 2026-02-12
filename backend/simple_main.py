@@ -8,6 +8,7 @@ from cryptography.fernet import Fernet
 import os
 import json
 import bcrypt
+import time
 
 # Simple file-based storage (no database needed for quick start)
 USERS_FILE = "users.json"
@@ -35,10 +36,10 @@ def save_json(filename, data):
 # FastAPI app
 app = FastAPI(title="API Key Management Dashboard")
 
-# CORS
+# CORS - Allow all origins in production
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173"],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -159,7 +160,13 @@ async def list_keys(user_id: str = Header(None, alias="Authorization")):
                 "provider": k["provider"],
                 "status": k["status"],
                 "createdAt": k["created_at"],
-                "lastUsedAt": k.get("last_used_at")
+                "lastUsedAt": k.get("last_used_at"),
+                "usageCount": k.get("usage_count", 0),
+                "avgResponseTimeMs": round(
+                    sum(r["response_time_ms"] for r in k.get("response_times", [])) / len(k.get("response_times", [])) 
+                    if k.get("response_times") else 0, 
+                    2
+                )
             }
             for k in user_keys
         ]
@@ -234,6 +241,8 @@ async def validate_key(
     x_api_key: Optional[str] = Header(None),
     api_key: Optional[str] = Query(None)
 ):
+    start_time = time.time()
+    
     key_value = None
     if data and "apiKey" in data:
         key_value = data["apiKey"]
@@ -260,20 +269,65 @@ async def validate_key(
     if key["status"] != "active":
         raise HTTPException(status_code=401, detail="API key is inactive")
     
-    # Update last used
+    # Update last used and track performance
     key["last_used_at"] = datetime.utcnow().isoformat()
+    
+    # Track usage stats
+    if "usage_count" not in key:
+        key["usage_count"] = 0
+    key["usage_count"] += 1
+    
+    # Track response times
+    if "response_times" not in key:
+        key["response_times"] = []
+    
+    response_time_ms = (time.time() - start_time) * 1000
+    key["response_times"].append({
+        "timestamp": datetime.utcnow().isoformat(),
+        "response_time_ms": round(response_time_ms, 2)
+    })
+    
+    # Keep only last 100 response times
+    if len(key["response_times"]) > 100:
+        key["response_times"] = key["response_times"][-100:]
+    
     save_json(KEYS_FILE, keys)
     
     return {
         "valid": True,
         "userId": key["user_id"],
         "keyId": key["key_id"],
-        "provider": key["provider"]
+        "provider": key["provider"],
+        "responseTimeMs": round(response_time_ms, 2)
     }
 
 @app.get("/api/health")
 async def health_check():
     return {"status": "healthy", "timestamp": datetime.utcnow().isoformat()}
+
+@app.get("/api/keys/{key_id}/stats")
+async def get_key_stats(key_id: str, user_id: str = Header(None, alias="Authorization")):
+    user_id = get_current_user(user_id)
+    
+    keys = load_json(KEYS_FILE)
+    key = keys.get(key_id)
+    
+    if not key or key["user_id"] != user_id:
+        raise HTTPException(status_code=404, detail="Key not found")
+    
+    # Calculate average response time
+    response_times = key.get("response_times", [])
+    avg_response_time = 0
+    if response_times:
+        avg_response_time = sum(r["response_time_ms"] for r in response_times) / len(response_times)
+    
+    return {
+        "keyId": key_id,
+        "usageCount": key.get("usage_count", 0),
+        "avgResponseTimeMs": round(avg_response_time, 2),
+        "lastUsedAt": key.get("last_used_at"),
+        "recentResponseTimes": response_times[-10:] if response_times else []
+    }
 
 if __name__ == "__main__":
     import uvicorn

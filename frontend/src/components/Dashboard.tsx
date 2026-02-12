@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { api, APIKey } from '../api'
 import { formatDistanceToNow } from 'date-fns'
-import { Key, Plus, Trash2, Copy, LogOut, RefreshCw } from 'lucide-react'
+import { Key, Plus, Trash2, Copy, LogOut, RefreshCw, Activity, Zap } from 'lucide-react'
 import './Dashboard.css'
 
 interface DashboardProps {
@@ -155,6 +155,16 @@ export default function Dashboard({ sessionId, onLogout }: DashboardProps) {
                     {key.lastUsedAt 
                       ? formatDistanceToNow(new Date(key.lastUsedAt), { addSuffix: true })
                       : 'Never used'}
+                  </span>
+                </div>
+                <div className="info-row">
+                  <span className="label"><Activity size={14} /> Usage:</span>
+                  <span className="stat-value">{key.usageCount || 0} calls</span>
+                </div>
+                <div className="info-row">
+                  <span className="label"><Zap size={14} /> Avg Speed:</span>
+                  <span className={`stat-value ${(key.avgResponseTimeMs || 0) < 50 ? 'fast' : (key.avgResponseTimeMs || 0) < 200 ? 'medium' : 'slow'}`}>
+                    {key.avgResponseTimeMs ? `${key.avgResponseTimeMs}ms` : 'N/A'}
                   </span>
                 </div>
               </div>

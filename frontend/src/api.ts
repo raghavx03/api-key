@@ -8,6 +8,8 @@ export interface APIKey {
   createdAt: string
   lastUsedAt: string | null
   keyValue?: string
+  usageCount?: number
+  avgResponseTimeMs?: number
 }
 
 export const api = {

@@ -1,0 +1,11 @@
+[phases.setup]
+nixPkgs = ["python311", "pip"]
+
+[phases.install]
+cmds = ["pip install -r backend/simple_requirements.txt"]
+
+[phases.build]
+cmds = []
+
+[start]
+cmd = "python backend/simple_main.py"

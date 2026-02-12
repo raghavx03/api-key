@@ -331,7 +331,8 @@ async def get_key_stats(key_id: str, user_id: str = Header(None, alias="Authoriz
 
 if __name__ == "__main__":
     import uvicorn
+    port = int(os.getenv("PORT", 8000))
     print("🚀 Starting API Key Management Dashboard...")
-    print("📍 Backend: http://localhost:8000")
+    print(f"📍 Backend: http://0.0.0.0:{port}")
     print("📍 Frontend: http://localhost:3000")
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=port)

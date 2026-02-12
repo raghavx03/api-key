@@ -10,7 +10,12 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application
 COPY backend/ /app/backend/
-COPY users.json keys.json sessions.json /app/ 2>/dev/null || true
+
+# Create empty JSON files if they don't exist
+RUN touch /app/users.json /app/keys.json /app/sessions.json && \
+    echo '{}' > /app/users.json && \
+    echo '{}' > /app/keys.json && \
+    echo '{}' > /app/sessions.json
 
 # Expose port
 EXPOSE 8000

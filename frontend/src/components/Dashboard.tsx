@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { api, APIKey } from '../api'
 import { formatDistanceToNow } from 'date-fns'
-import { Key, Plus, Trash2, Copy, Eye, EyeOff, LogOut, RefreshCw } from 'lucide-react'
+import { Key, Plus, Trash2, Copy, LogOut, RefreshCw } from 'lucide-react'
 import './Dashboard.css'
 
 interface DashboardProps {
@@ -16,7 +16,6 @@ export default function Dashboard({ sessionId, onLogout }: DashboardProps) {
   const [newKeyLabel, setNewKeyLabel] = useState('')
   const [newKeyProvider, setNewKeyProvider] = useState('internal')
   const [createdKey, setCreatedKey] = useState<APIKey | null>(null)
-  const [visibleKeys, setVisibleKeys] = useState<Set<string>>(new Set())
   const [filterProvider, setFilterProvider] = useState<string>('all')
 
   const loadKeys = async () => {
@@ -70,16 +69,6 @@ export default function Dashboard({ sessionId, onLogout }: DashboardProps) {
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text)
     alert('Copied to clipboard!')
-  }
-
-  const toggleKeyVisibility = (keyId: string) => {
-    const newVisible = new Set(visibleKeys)
-    if (newVisible.has(keyId)) {
-      newVisible.delete(keyId)
-    } else {
-      newVisible.add(keyId)
-    }
-    setVisibleKeys(newVisible)
   }
 
   const handleLogout = async () => {

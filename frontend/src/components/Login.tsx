@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Eye, EyeOff, Sparkles, Shield, Zap, Key } from 'lucide-react'
+import { Eye, EyeOff, Sparkles, Shield, Zap } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useAuthStore } from '../store'
 import './Login.css'
@@ -73,9 +73,9 @@ export default function Login() {
         >
           <div className="hero-content">
             <div className="hero-icon">
-              <Key size={32} />
+              <img src="/logo.png" alt="RagsPro" style={{ width: 40, height: 40, borderRadius: 10 }} />
             </div>
-            <h1>API Key<br /><span className="gradient-text">Gateway</span></h1>
+            <h1>RagsPro<br /><span className="gradient-text">API Gateway</span></h1>
             <p>Enterprise-grade API key management with advanced security, RBAC, and real-time analytics.</p>
 
             <div className="feature-list">

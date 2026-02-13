@@ -35,6 +35,7 @@ export interface UserProfile {
   userId: string
   email: string
   role: string
+  plan: string
 }
 
 export interface AdminStats {
@@ -247,4 +248,37 @@ export const api = {
   // ─── Helpers ───
   isAuthenticated: () => !!getAccessToken(),
   clearAuth: clearTokens,
+
+  // ─── Billing ───
+  async createOrder(plan: string = 'pro') {
+    const res = await fetchWithAuth(`${API_BASE}/billing/create-order`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ plan }),
+    })
+    if (!res.ok) {
+      const err = await res.json()
+      throw new Error(err.detail || 'Failed to create order')
+    }
+    return res.json()
+  },
+
+  async verifyPayment(data: { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string }) {
+    const res = await fetchWithAuth(`${API_BASE}/billing/verify-payment`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    })
+    if (!res.ok) {
+      const err = await res.json()
+      throw new Error(err.detail || 'Payment verification failed')
+    }
+    return res.json()
+  },
+
+  async getPlanInfo() {
+    const res = await fetchWithAuth(`${API_BASE}/billing/plan`)
+    if (!res.ok) throw new Error('Failed to get plan info')
+    return res.json()
+  },
 }

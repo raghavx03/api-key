@@ -4,7 +4,7 @@ import {
   Key, Plus, Trash2, Copy, LogOut, RefreshCw, Activity, Zap,
   Search, Moon, Sun, Shield, RotateCw,
   ChevronLeft, ChevronRight, BarChart3, Users, Globe, Lock, Clock,
-  TrendingUp, AlertTriangle,
+  TrendingUp, AlertTriangle, Crown, X, Check, Sparkles,
 } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 import toast from 'react-hot-toast'
@@ -25,6 +25,8 @@ export default function Dashboard() {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [createdKey, setCreatedKey] = useState<APIKey | null>(null)
   const [showAnalytics, setShowAnalytics] = useState(false)
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false)
+  const [upgrading, setUpgrading] = useState(false)
   const [newKey, setNewKey] = useState({ label: '', provider: 'internal', scope: 'read_write', quota: 0, expiry: 0 })
   const [searchInput, setSearchInput] = useState('')
   const [adminStats, setAdminStats] = useState<any>(null)
@@ -117,9 +119,51 @@ export default function Dashboard() {
     toast.success('Copied to clipboard!')
   }
 
-  const handleLogout = async () => {
-    await logout()
+  const handleLogout = () => {
+    logout()
     toast.success('Logged out')
+  }
+
+  const handleUpgrade = async () => {
+    setUpgrading(true)
+    try {
+      const order = await api.createOrder('pro')
+      const options = {
+        key: order.key_id,
+        amount: order.amount,
+        currency: order.currency,
+        name: 'RagsPro API',
+        description: 'Pro Plan — Monthly',
+        order_id: order.order_id,
+        handler: async (response: any) => {
+          try {
+            await api.verifyPayment({
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+            })
+            toast.success('Upgraded to Pro! Refreshing...')
+            setShowUpgradeModal(false)
+            // Refresh user profile to get new plan
+            const { fetchProfile } = useAuthStore.getState()
+            await fetchProfile()
+          } catch (err: any) {
+            toast.error(err.message || 'Payment verification failed')
+          }
+        },
+        prefill: { email: user?.email || '' },
+        theme: { color: '#6366f1' },
+      }
+      const rzp = new (window as any).Razorpay(options)
+      rzp.on('payment.failed', () => {
+        toast.error('Payment failed. Please try again.')
+      })
+      rzp.open()
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to initiate payment')
+    } finally {
+      setUpgrading(false)
+    }
   }
 
   // Chart data
@@ -148,10 +192,10 @@ export default function Dashboard() {
       <header className="dash-header">
         <div className="header-left">
           <div className="logo-mark">
-            <Key size={20} />
+            <img src="/logo.png" alt="RagsPro" style={{ width: 24, height: 24, borderRadius: 6 }} />
           </div>
           <div>
-            <h1 className="app-title">API Gateway</h1>
+            <h1 className="app-title">RagsPro API</h1>
             <span className="version-badge">v2.0</span>
           </div>
         </div>
@@ -167,8 +211,16 @@ export default function Dashboard() {
           </button>
           <div className="user-badge">
             <span className="user-email">{user?.email}</span>
+            <span className={`plan-tag plan-${user?.plan || 'free'}`}>
+              {user?.plan === 'pro' ? <><Crown size={12} /> Pro</> : 'Free'}
+            </span>
             {user?.role !== 'user' && <span className={`role-tag role-${user?.role}`}>{user?.role}</span>}
           </div>
+          {user?.plan !== 'pro' && (
+            <button className="upgrade-btn" onClick={() => setShowUpgradeModal(true)}>
+              <Sparkles size={14} /> Upgrade
+            </button>
+          )}
           <button className="icon-btn logout-btn" onClick={handleLogout} title="Logout">
             <LogOut size={18} />
           </button>
@@ -553,6 +605,58 @@ export default function Dashboard() {
               <button className="btn-primary full" onClick={() => setCreatedKey(null)}>
                 I've saved it
               </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ─── Upgrade Modal ─── */}
+      <AnimatePresence>
+        {showUpgradeModal && (
+          <motion.div
+            className="modal-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowUpgradeModal(false)}
+          >
+            <motion.div
+              className="modal glass-card upgrade-modal"
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={e => e.stopPropagation()}
+            >
+              <button className="modal-close" onClick={() => setShowUpgradeModal(false)}>
+                <X size={20} />
+              </button>
+              <div className="upgrade-header">
+                <div className="upgrade-icon-wrap">
+                  <Crown size={28} />
+                </div>
+                <h2>Upgrade to <span className="gradient-text">Pro</span></h2>
+                <p>Unlock the full power of RagsPro API Gateway</p>
+              </div>
+              <div className="upgrade-features">
+                {['Unlimited API keys', 'Advanced analytics dashboard', '1,000 req/min rate limit', 'Custom providers', 'Team management', 'Priority email support', 'Key rotation & IP whitelisting', 'Audit logs'].map(f => (
+                  <div key={f} className="upgrade-feature-item">
+                    <Check size={16} className="check-icon" />
+                    <span>{f}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="upgrade-price">
+                <span className="price-amount">₹1,599</span>
+                <span className="price-period">/month</span>
+              </div>
+              <button
+                className="btn-primary full upgrade-pay-btn"
+                onClick={handleUpgrade}
+                disabled={upgrading}
+              >
+                {upgrading ? 'Processing...' : 'Pay & Upgrade Now'}
+              </button>
+              <p className="secure-text">Secure payment via Razorpay</p>
             </motion.div>
           </motion.div>
         )}

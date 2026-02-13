@@ -25,7 +25,7 @@ import time
 from datetime import datetime, timezone, timedelta
 from cryptography.fernet import Fernet
 import os
-from sqlalchemy import create_engine, Column, String, DateTime, Boolean, Integer, JSON, Index, Float, text
+from sqlalchemy import create_engine, Column, String, DateTime, Boolean, Integer, JSON, Index, Float, text, inspect as sa_inspect
 from sqlalchemy.orm import DeclarativeBase, sessionmaker, Session
 import bcrypt
 import httpx
@@ -38,6 +38,9 @@ import sys
 # Configuration
 # ─────────────────────────────────────────────
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./api_keys.db")
+RAZORPAY_KEY_ID = os.getenv("RAZORPAY_KEY_ID", "")
+RAZORPAY_KEY_SECRET = os.getenv("RAZORPAY_KEY_SECRET", "")
+SUPER_ADMIN_EMAIL = "ragsproai@gmail.com"
 ENCRYPTION_KEY = os.getenv("ENCRYPTION_KEY", Fernet.generate_key().decode())
 NVIDIA_API_KEY = os.getenv("NVIDIA_API_KEY", "")
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", secrets.token_urlsafe(64))
@@ -87,6 +90,7 @@ class User(Base):
     email = Column(String, unique=True, nullable=False, index=True)
     password_hash = Column(String, nullable=False)
     role = Column(String, default="user")  # admin, user, viewer
+    plan = Column(String, default="free")  # free, pro
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
@@ -137,6 +141,36 @@ class AuditLog(Base):
 
 # Create tables
 Base.metadata.create_all(bind=engine)
+
+# ── Add 'plan' column if not exists (migration for existing DBs) ──
+try:
+    inspector = sa_inspect(engine)
+    columns = [c["name"] for c in inspector.get_columns("users")]
+    if "plan" not in columns:
+        with engine.connect() as conn:
+            conn.execute(text("ALTER TABLE users ADD COLUMN plan VARCHAR DEFAULT 'free'"))
+            conn.commit()
+            logger.info("Added 'plan' column to users table")
+except Exception as e:
+    logger.warning(f"Migration check: {e}")
+
+# ── Super admin auto-setup ──
+def setup_super_admin():
+    db = SessionLocal()
+    try:
+        admin = db.query(User).filter(User.email == SUPER_ADMIN_EMAIL).first()
+        if admin:
+            if admin.role != "admin" or admin.plan != "pro":
+                admin.role = "admin"
+                admin.plan = "pro"
+                db.commit()
+                logger.info(f"Super admin updated: {SUPER_ADMIN_EMAIL} -> admin + pro")
+        else:
+            logger.info(f"Super admin {SUPER_ADMIN_EMAIL} not registered yet, will be set on registration")
+    finally:
+        db.close()
+
+setup_super_admin()
 
 # ─────────────────────────────────────────────
 # Rate Limiting (in-memory sliding window)
@@ -362,7 +396,7 @@ async def get_current_user(authorization: Optional[str] = Header(None), db: Sess
     if not user or not user.is_active:
         raise HTTPException(status_code=401, detail="User not found or inactive")
     
-    return {"user_id": user.user_id, "email": user.email, "role": user.role}
+    return {"user_id": user.user_id, "email": user.email, "role": user.role, "plan": user.plan or "free"}
 
 async def require_admin(current_user: dict = Depends(get_current_user)) -> dict:
     if current_user["role"] != "admin":
@@ -426,11 +460,18 @@ async def register(request: RegisterRequest, req: Request, db: Session = Depends
     user_count = db.query(User).count()
     role = "admin" if user_count == 0 else "user"
     
+    # Super admin gets admin + pro automatically
+    plan = "free"
+    if request.email.lower() == SUPER_ADMIN_EMAIL:
+        role = "admin"
+        plan = "pro"
+    
     user = User(
         user_id=secrets.token_urlsafe(16),
         email=request.email,
         password_hash=await hash_password(request.password),
         role=role,
+        plan=plan,
     )
     db.add(user)
     db.commit()
@@ -438,8 +479,8 @@ async def register(request: RegisterRequest, req: Request, db: Session = Depends
     log_audit(db, user.user_id, "user.register", "user", user.user_id, 
               req.client.host if req.client else None)
     
-    logger.info(f"New user registered: {request.email} (role: {role})")
-    return {"message": "User registered successfully", "role": role}
+    logger.info(f"New user registered: {request.email} (role: {role}, plan: {plan})")
+    return {"message": "User registered successfully", "role": role, "plan": plan}
 
 @app.post("/api/v1/auth/login", response_model=TokenResponse, tags=["Authentication"])
 async def login(request: LoginRequest, req: Request, db: Session = Depends(get_db)):
@@ -562,6 +603,7 @@ async def get_me(current_user: dict = Depends(get_current_user)):
         "userId": current_user["user_id"],
         "email": current_user["email"],
         "role": current_user["role"],
+        "plan": current_user.get("plan", "free"),
     }
 
 # ─────── Key Management Routes ───────
@@ -636,6 +678,16 @@ async def create_key(
     db: Session = Depends(get_db)
 ):
     """Create a new API key with scoping and optional IP whitelisting."""
+    # Plan limit enforcement: Free users can have max 10 keys
+    user_plan = current_user.get("plan", "free")
+    if user_plan == "free":
+        existing_count = db.query(APIKey).filter(APIKey.user_id == current_user["user_id"]).count()
+        if existing_count >= 10:
+            raise HTTPException(
+                status_code=403,
+                detail="Free plan limit reached (10 keys). Upgrade to Pro for unlimited keys."
+            )
+    
     key_value = generate_key()
     key_hash_value = hash_key(key_value)
     
@@ -1001,6 +1053,138 @@ async def health_check(db: Session = Depends(get_db)):
         "checks": checks,
         "version": "2.0.0",
         "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+
+# ─────── Billing / Razorpay Routes ───────
+
+class CreateOrderRequest(BaseModel):
+    plan: str = "pro"
+
+class VerifyPaymentRequest(BaseModel):
+    razorpay_order_id: str
+    razorpay_payment_id: str
+    razorpay_signature: str
+
+PLAN_PRICES = {
+    "pro": {"amount": 159900, "currency": "INR", "description": "RagsPro API Pro Plan — Monthly"},
+}
+
+@app.get("/api/v1/billing/plan", tags=["Billing"])
+async def get_plan_info(current_user: dict = Depends(get_current_user)):
+    """Get current user's plan information."""
+    plan = current_user.get("plan", "free")
+    limits = {
+        "free": {"max_keys": 10, "rate_limit": 60, "features": ["Up to 10 API keys", "AES-256 encryption", "Basic analytics", "60 req/min", "Key rotation", "Community support"]},
+        "pro": {"max_keys": -1, "rate_limit": 1000, "features": ["Unlimited API keys", "AES-256 encryption", "Advanced analytics", "1,000 req/min", "Key rotation", "Priority email support", "Custom providers", "Team management"]},
+    }
+    return {
+        "plan": plan,
+        "limits": limits.get(plan, limits["free"]),
+        "is_pro": plan == "pro",
+    }
+
+@app.post("/api/v1/billing/create-order", tags=["Billing"])
+async def create_razorpay_order(
+    request: CreateOrderRequest,
+    current_user: dict = Depends(get_current_user)
+):
+    """Create a Razorpay order for plan upgrade."""
+    if current_user.get("plan") == "pro":
+        raise HTTPException(status_code=400, detail="Already on Pro plan")
+    
+    if not RAZORPAY_KEY_ID or not RAZORPAY_KEY_SECRET:
+        raise HTTPException(status_code=500, detail="Payment gateway not configured")
+    
+    plan_info = PLAN_PRICES.get(request.plan)
+    if not plan_info:
+        raise HTTPException(status_code=400, detail="Invalid plan")
+    
+    try:
+        import hmac as hmac_mod
+        # Create order via Razorpay API
+        order_data = {
+            "amount": plan_info["amount"],
+            "currency": plan_info["currency"],
+            "receipt": f"order_{current_user['user_id']}_{int(time.time())}",
+            "notes": {
+                "user_id": current_user["user_id"],
+                "email": current_user["email"],
+                "plan": request.plan,
+            }
+        }
+        
+        import base64
+        auth_string = f"{RAZORPAY_KEY_ID}:{RAZORPAY_KEY_SECRET}"
+        auth_header = base64.b64encode(auth_string.encode()).decode()
+        
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(
+                "https://api.razorpay.com/v1/orders",
+                json=order_data,
+                headers={
+                    "Content-Type": "application/json",
+                    "Authorization": f"Basic {auth_header}",
+                },
+                timeout=10.0,
+            )
+        
+        if resp.status_code != 200:
+            logger.error(f"Razorpay order creation failed: {resp.text}")
+            raise HTTPException(status_code=500, detail="Failed to create payment order")
+        
+        order = resp.json()
+        return {
+            "order_id": order["id"],
+            "amount": order["amount"],
+            "currency": order["currency"],
+            "key_id": RAZORPAY_KEY_ID,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Razorpay error: {e}")
+        raise HTTPException(status_code=500, detail="Payment service error")
+
+@app.post("/api/v1/billing/verify-payment", tags=["Billing"])
+async def verify_razorpay_payment(
+    request: VerifyPaymentRequest,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Verify Razorpay payment and upgrade user to Pro."""
+    import hmac as hmac_mod
+    
+    # Verify signature
+    message = f"{request.razorpay_order_id}|{request.razorpay_payment_id}"
+    expected_signature = hmac_mod.new(
+        RAZORPAY_KEY_SECRET.encode(),
+        message.encode(),
+        hashlib.sha256
+    ).hexdigest()
+    
+    if expected_signature != request.razorpay_signature:
+        raise HTTPException(status_code=400, detail="Payment verification failed")
+    
+    # Upgrade user to Pro
+    user = db.query(User).filter(User.user_id == current_user["user_id"]).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    user.plan = "pro"
+    db.commit()
+    
+    log_audit(db, user.user_id, "billing.upgrade", "user", user.user_id, details={
+        "plan": "pro",
+        "payment_id": request.razorpay_payment_id,
+        "order_id": request.razorpay_order_id,
+    })
+    
+    logger.info(f"User upgraded to Pro: {user.email} (payment: {request.razorpay_payment_id})")
+    
+    return {
+        "success": True,
+        "plan": "pro",
+        "message": "Successfully upgraded to Pro plan!",
     }
 
 # ─────── Backward Compatibility (old routes redirect) ───────

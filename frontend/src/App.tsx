@@ -4,6 +4,8 @@ import { Toaster } from 'react-hot-toast'
 import { useAuthStore, useThemeStore } from './store'
 import ErrorBoundary from './components/ErrorBoundary'
 
+const LandingPage = lazy(() => import('./components/LandingPage'))
+const Docs = lazy(() => import('./components/Docs'))
 const Login = lazy(() => import('./components/Login'))
 const Dashboard = lazy(() => import('./components/Dashboard'))
 
@@ -67,6 +69,8 @@ function App() {
         />
         <Suspense fallback={<LoadingFallback />}>
           <Routes>
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/docs" element={<Docs />} />
             <Route
               path="/login"
               element={
@@ -79,8 +83,7 @@ function App() {
                 isAuthenticated ? <Dashboard /> : <Navigate to="/login" replace />
               }
             />
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>
       </BrowserRouter>

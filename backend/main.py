@@ -176,7 +176,7 @@ app = FastAPI(
 )
 
 # CORS - Specific origins only
-ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:5173,https://api-key-blush.vercel.app,https://api-key-production.up.railway.app").split(",")
+ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:5173,https://api-key-blush.vercel.app,https://api-key-backend-xsdo.onrender.com,https://api.ragspro.com,http://api.ragspro.com").split(",")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,

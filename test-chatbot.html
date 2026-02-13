@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RagsPro AI Chatbot — Test</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: #0f0f1a;
+            color: #e4e4f0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, #a78bfa, #7c3aed);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            color: #888;
+            font-size: 0.85rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .chat-container {
+            width: 100%;
+            max-width: 700px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            overflow: hidden;
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1.5rem;
+            min-height: 400px;
+            max-height: 500px;
+        }
+
+        .message {
+            margin-bottom: 1rem;
+            display: flex;
+            gap: 0.75rem;
+            align-items: flex-start;
+        }
+
+        .message.user {
+            flex-direction: row-reverse;
+        }
+
+        .avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .message.user .avatar {
+            background: #7c3aed;
+        }
+
+        .message.ai .avatar {
+            background: #10b981;
+        }
+
+        .bubble {
+            padding: 0.75rem 1rem;
+            border-radius: 12px;
+            max-width: 80%;
+            line-height: 1.6;
+            font-size: 0.9rem;
+        }
+
+        .message.user .bubble {
+            background: #7c3aed;
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.ai .bubble {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-bottom-left-radius: 4px;
+        }
+
+        .input-area {
+            padding: 1rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        input {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 0.75rem 1rem;
+            color: #e4e4f0;
+            font-size: 0.9rem;
+            outline: none;
+        }
+
+        input:focus {
+            border-color: #7c3aed;
+        }
+
+        button {
+            background: #7c3aed;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 0.75rem 1.25rem;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            background: #6d28d9;
+            transform: scale(1.02);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .typing {
+            color: #888;
+            font-style: italic;
+            font-size: 0.85rem;
+        }
+
+        .status {
+            text-align: center;
+            padding: 0.5rem;
+            font-size: 0.75rem;
+            color: #10b981;
+        }
+
+        .status.error {
+            color: #ef4444;
+        }
+
+        .model-select {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 0.5rem;
+            color: #e4e4f0;
+            font-size: 0.8rem;
+            margin-bottom: 1rem;
+            width: 100%;
+            max-width: 700px;
+        }
+
+        .model-select option {
+            background: #1a1a2e;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🚀 RagsPro AI Chatbot</h1>
+    <p class="subtitle">Powered by RagsPro API Gateway — api.ragspro.com</p>
+
+    <select id="modelSelect" class="model-select">
+        <option value="meta/llama-3.1-8b-instruct">Meta Llama 3.1 8B (Fast)</option>
+        <option value="meta/llama-3.1-70b-instruct">Meta Llama 3.1 70B (Smart)</option>
+        <option value="nvidia/llama-3.1-nemotron-70b-instruct">NVIDIA Nemotron 70B (Best Quality)</option>
+        <option value="google/gemma-2-9b-it">Google Gemma 2 9B</option>
+        <option value="mistralai/mistral-7b-instruct-v0.3">Mistral 7B</option>
+    </select>
+
+    <div class="chat-container">
+        <div class="messages" id="messages">
+            <div class="message ai">
+                <div class="avatar">🤖</div>
+                <div class="bubble">Hello! I'm powered by RagsPro API Gateway. Ask me anything!</div>
+            </div>
+        </div>
+        <div id="status" class="status">✅ Connected to RagsPro API</div>
+        <div class="input-area">
+            <input type="text" id="userInput" placeholder="Type a message..." autofocus />
+            <button id="sendBtn" onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+
+    <script>
+        // ═══════════════════════════════════════════
+        // CONFIGURATION — Replace with your API key
+        // ═══════════════════════════════════════════
+        const API_URL = 'https://api-key-backend-xsdo.onrender.com';
+        const API_KEY = 'akm_hsulDWo_ZaW3JbVUKc7uDt4V9ftnU77Ja_9dvBBR6rc';
+
+        const history = [
+            { role: 'system', content: 'You are a helpful, friendly AI assistant powered by RagsPro API Gateway. Keep responses concise.' }
+        ];
+
+        const messagesDiv = document.getElementById('messages');
+        const userInput = document.getElementById('userInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const statusDiv = document.getElementById('status');
+        const modelSelect = document.getElementById('modelSelect');
+
+        userInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !sendBtn.disabled) sendMessage();
+        });
+
+        async function sendMessage() {
+            const message = userInput.value.trim();
+            if (!message) return;
+
+            // Show user message
+            addMessage('user', message);
+            userInput.value = '';
+            sendBtn.disabled = true;
+            statusDiv.textContent = '⏳ Thinking...';
+            statusDiv.className = 'status';
+
+            // Add to history
+            history.push({ role: 'user', content: message });
+
+            try {
+                const startTime = Date.now();
+
+                const response = await fetch(`${API_URL}/v1/chat/completions`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${API_KEY}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: modelSelect.value,
+                        messages: history,
+                        max_tokens: 500,
+                        temperature: 0.7
+                    })
+                });
+
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.detail || `HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+                const reply = data.choices[0].message.content;
+                const elapsed = Date.now() - startTime;
+                const gateway = data._gateway || {};
+
+                // Add to history
+                history.push({ role: 'assistant', content: reply });
+
+                // Show AI message
+                addMessage('ai', reply);
+
+                statusDiv.textContent = `✅ ${elapsed}ms | Model: ${modelSelect.value.split('/').pop()} | Provider: ${gateway.provider || 'nvidia'}`;
+                statusDiv.className = 'status';
+
+            } catch (err) {
+                statusDiv.textContent = `❌ Error: ${err.message}`;
+                statusDiv.className = 'status error';
+                addMessage('ai', `Sorry, I encountered an error: ${err.message}`);
+            }
+
+            sendBtn.disabled = false;
+            userInput.focus();
+        }
+
+        function addMessage(role, content) {
+            const div = document.createElement('div');
+            div.className = `message ${role}`;
+            div.innerHTML = `
+                <div class="avatar">${role === 'user' ? '👤' : '🤖'}</div>
+                <div class="bubble">${escapeHtml(content)}</div>
+            `;
+            messagesDiv.appendChild(div);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function escapeHtml(str) {
+            return str
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/\n/g, '<br>');
+        }
+    </script>
+</body>
+
+</html>

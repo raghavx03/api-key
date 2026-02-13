@@ -4,9 +4,9 @@ import { AlertCircle, Info } from 'lucide-react'
 import './LandingPage.css'
 import './Docs.css'
 
-type Section = 'intro' | 'auth' | 'keys' | 'validate' | 'admin' | 'errors' | 'examples'
+type Section = 'intro' | 'auth' | 'keys' | 'validate' | 'ai-proxy' | 'admin' | 'errors' | 'examples'
 
-const BASE_URL = 'https://api.ragspro.com'
+const API_URL = 'https://api-key-backend-xsdo.onrender.com'
 
 export default function Docs() {
     const [section, setSection] = useState<Section>('intro')
@@ -36,6 +36,7 @@ export default function Docs() {
                     <h4>API Reference</h4>
                     <button className={`sidebar-link ${section === 'keys' ? 'active' : ''}`} onClick={() => setSection('keys')}>Key Management</button>
                     <button className={`sidebar-link ${section === 'validate' ? 'active' : ''}`} onClick={() => setSection('validate')}>Validation</button>
+                    <button className={`sidebar-link ${section === 'ai-proxy' ? 'active' : ''}`} onClick={() => setSection('ai-proxy')}>AI Proxy</button>
                     <button className={`sidebar-link ${section === 'admin' ? 'active' : ''}`} onClick={() => setSection('admin')}>Admin</button>
 
                     <h4>Resources</h4>
@@ -49,6 +50,7 @@ export default function Docs() {
                     {section === 'auth' && <AuthSection />}
                     {section === 'keys' && <KeysSection />}
                     {section === 'validate' && <ValidateSection />}
+                    {section === 'ai-proxy' && <AIProxySection />}
                     {section === 'admin' && <AdminSection />}
                     {section === 'examples' && <ExamplesSection />}
                     {section === 'errors' && <ErrorsSection />}
@@ -64,21 +66,36 @@ function IntroSection() {
             <h1>RagsPro API Documentation</h1>
             <p className="docs-intro">
                 RagsPro API Gateway provides enterprise-grade API key management with encryption,
-                role-based access control, and real-time analytics. This documentation covers all
-                17 endpoints available in the REST API.
+                role-based access control, real-time analytics, and an <strong>OpenAI-compatible AI proxy</strong>.
+                This documentation covers all endpoints available in the REST API.
             </p>
 
-            <h2>Base URL</h2>
-            <div className="doc-code-block">{BASE_URL}/api/v1</div>
+            <h2>API Base URL</h2>
+            <div className="doc-code-block">{API_URL}/api/v1</div>
+
+            <h2>AI Proxy Base URL</h2>
+            <div className="doc-code-block">{API_URL}/v1</div>
+
+            <div className="docs-alert info">
+                <Info size={18} />
+                <span>The API management endpoints use <code>/api/v1</code> prefix. The AI Proxy endpoints use <code>/v1</code> prefix (OpenAI-compatible).</span>
+            </div>
 
             <h2>Quick Start</h2>
             <h3>1. Create an Account</h3>
-            <div className="doc-code-block">{`curl -X POST ${BASE_URL}/api/v1/auth/register \\
+            <div className="doc-code-block">{`curl -X POST ${API_URL}/api/v1/auth/register \\
   -H "Content-Type: application/json" \\
-  -d '{"email": "you@example.com", "password": "SecurePass123"}'`}</div>
+  -d '{"email": "you@example.com", "password": "SecurePass123"}'
+
+# Response:
+{
+  "message": "User registered successfully",
+  "role": "admin",
+  "plan": "pro"
+}`}</div>
 
             <h3>2. Login and Get Token</h3>
-            <div className="doc-code-block">{`curl -X POST ${BASE_URL}/api/v1/auth/login \\
+            <div className="doc-code-block">{`curl -X POST ${API_URL}/api/v1/auth/login \\
   -H "Content-Type: application/json" \\
   -d '{"email": "you@example.com", "password": "SecurePass123"}'
 
@@ -90,23 +107,44 @@ function IntroSection() {
 }`}</div>
 
             <h3>3. Create an API Key</h3>
-            <div className="doc-code-block">{`curl -X POST ${BASE_URL}/api/v1/keys \\
+            <div className="doc-code-block">{`curl -X POST ${API_URL}/api/v1/keys \\
   -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \\
   -H "Content-Type: application/json" \\
   -d '{"label": "My First Key", "provider": "internal"}'
 
-# Response includes raw_key — save it! Not shown again.`}</div>
+# Response:
+{
+  "keyId": "abc123...",
+  "keyValue": "akm_5QQ2yIRqVWAs...",  ← Save this! Not shown again.
+  "label": "My First Key",
+  "provider": "internal",
+  "scope": "read_write",
+  "status": "active"
+}`}</div>
 
-            <h3>4. Validate a Key</h3>
-            <div className="doc-code-block">{`curl -X POST ${BASE_URL}/api/v1/validate \\
+            <h3>4. Use the Key for AI Chat</h3>
+            <div className="doc-code-block">{`curl -X POST ${API_URL}/v1/chat/completions \\
+  -H "Authorization: Bearer akm_your_key_here" \\
   -H "Content-Type: application/json" \\
-  -d '{"apiKey": "akm_your_key_here"}'
+  -d '{
+    "model": "meta/llama-3.1-8b-instruct",
+    "messages": [{"role": "user", "content": "Hello!"}]
+  }'
 
-# Response: {"valid": true, "key_id": "...", "scope": "read_write"}`}</div>
+# Response (OpenAI-compatible):
+{
+  "id": "chatcmpl-...",
+  "choices": [{
+    "message": {"role": "assistant", "content": "Hello! How can I help?"},
+    "finish_reason": "stop"
+  }],
+  "model": "meta/llama-3.1-8b-instruct",
+  "usage": {"prompt_tokens": 10, "completion_tokens": 8, "total_tokens": 18}
+}`}</div>
 
-            <div className="docs-alert info">
-                <Info size={18} />
-                <span>All endpoints return JSON. Use <code>Content-Type: application/json</code> for request bodies.</span>
+            <div className="docs-alert warning">
+                <AlertCircle size={18} />
+                <span>The <code>keyValue</code> (starting with <code>akm_</code>) is only returned once during creation. Store it securely!</span>
             </div>
         </>
     )
@@ -142,12 +180,15 @@ function AuthSection() {
                             <tr><td><code>password</code></td><td>string</td><td>8-128 chars, 1 uppercase, 1 lowercase, 1 digit</td></tr>
                         </tbody>
                     </table>
+                    <h4>Example</h4>
+                    <div className="doc-code-block">{`curl -X POST ${API_URL}/api/v1/auth/register \\
+  -H "Content-Type: application/json" \\
+  -d '{"email": "you@example.com", "password": "SecurePass123"}'`}</div>
                     <h4>Response</h4>
                     <div className="doc-code-block">{`{
   "message": "User registered successfully",
-  "user_id": "abc123...",
-  "email": "you@example.com",
-  "role": "admin"
+  "role": "admin",
+  "plan": "pro"
 }`}</div>
                 </div>
             </div>
@@ -160,24 +201,15 @@ function AuthSection() {
                     <span className="endpoint-desc">Get JWT tokens</span>
                 </div>
                 <div className="endpoint-body">
-                    <h4>Request Body</h4>
-                    <table className="params-table">
-                        <thead><tr><th>Field</th><th>Type</th></tr></thead>
-                        <tbody>
-                            <tr><td><code>email</code></td><td>string</td></tr>
-                            <tr><td><code>password</code></td><td>string</td></tr>
-                        </tbody>
-                    </table>
+                    <h4>Example</h4>
+                    <div className="doc-code-block">{`curl -X POST ${API_URL}/api/v1/auth/login \\
+  -H "Content-Type: application/json" \\
+  -d '{"email": "you@example.com", "password": "SecurePass123"}'`}</div>
                     <h4>Response</h4>
                     <div className="doc-code-block">{`{
-  "access_token": "eyJhbGciOiJIUzI1...",
-  "refresh_token": "eyJhbGciOiJIUzI1...",
-  "token_type": "bearer",
-  "user": {
-    "user_id": "abc123",
-    "email": "you@example.com",
-    "role": "admin"
-  }
+  "access_token": "eyJhbGciOiJIUzI1NiIs...",
+  "refresh_token": "eyJhbGciOiJIUzI1NiIs...",
+  "token_type": "bearer"
 }`}</div>
                 </div>
             </div>
@@ -232,7 +264,7 @@ function KeysSection() {
             <h1>Key Management</h1>
             <p className="docs-intro">
                 Create, list, update, delete, and rotate API keys. All endpoints require
-                authentication via JWT token.
+                authentication via JWT token in the <code>Authorization</code> header.
             </p>
 
             <h2>Create Key</h2>
@@ -255,18 +287,25 @@ function KeysSection() {
                             <tr><td><code>allowed_ips</code></td><td>string[]</td><td>[]</td><td>Whitelist IPs</td></tr>
                         </tbody>
                     </table>
+                    <h4>Example</h4>
+                    <div className="doc-code-block">{`curl -X POST ${API_URL}/api/v1/keys \\
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \\
+  -H "Content-Type: application/json" \\
+  -d '{"label": "Production Key", "provider": "nvidia", "scope": "full_access"}'`}</div>
                     <h4>Response</h4>
                     <div className="doc-code-block">{`{
-  "key_id": "abc123...",
+  "keyId": "VQPxtKvu0Wiu...",
+  "keyValue": "akm_hsulDWo_ZaW3JbV...",   ← Save this! Not shown again.
   "label": "Production Key",
   "provider": "nvidia",
-  "scope": "read_write",
+  "scope": "full_access",
   "status": "active",
-  "raw_key": "akm_5QQ2yIRqVWAs..."   ← Save this! Not shown again.
+  "createdAt": "2026-02-14T04:00:00Z",
+  "expiresAt": null
 }`}</div>
                     <div className="docs-alert warning">
                         <AlertCircle size={18} />
-                        <span>The <code>raw_key</code> is only returned once during creation. Store it securely — you cannot retrieve it again.</span>
+                        <span>The <code>keyValue</code> (starts with <code>akm_</code>) is only returned once during creation. Store it securely — you cannot retrieve it again.</span>
                     </div>
                 </div>
             </div>
@@ -330,7 +369,7 @@ function KeysSection() {
                 <div className="endpoint-body">
                     <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
                         Disables the old key and generates a new one with the same settings.
-                        Returns the new <code>raw_key</code>.
+                        Returns the new <code>keyValue</code>.
                     </p>
                 </div>
             </div>
@@ -350,7 +389,7 @@ function KeysSection() {
   "successful_validations": 1520,
   "failed_validations": 27,
   "avg_response_time_ms": 8.3,
-  "last_used_at": "2026-02-13T18:00:00Z"
+  "last_used_at": "2026-02-14T04:00:00Z"
 }`}</div>
                 </div>
             </div>
@@ -384,15 +423,20 @@ function ValidateSection() {
                         </tbody>
                     </table>
 
+                    <h4>Example</h4>
+                    <div className="doc-code-block">{`curl -X POST ${API_URL}/api/v1/validate \\
+  -H "Content-Type: application/json" \\
+  -d '{"apiKey": "akm_your_key_here"}'`}</div>
+
                     <h4>Success Response</h4>
                     <div className="doc-code-block">{`{
   "valid": true,
-  "key_id": "abc123",
-  "label": "Production Key",
-  "provider": "nvidia",
-  "scope": "read_write",
-  "usage_count": 1547,
-  "owner_email": "you@example.com"
+  "userId": "FZ_NaofX21FB...",
+  "keyId": "VQPxtKvu0Wiu...",
+  "provider": "internal",
+  "scope": "full_access",
+  "responseTimeMs": 4.21,
+  "usageCount": 1
 }`}</div>
 
                     <h4>Invalid Key Response</h4>
@@ -410,7 +454,7 @@ async function validateApiKey(req, res, next) {
   const apiKey = req.headers['x-api-key'];
   if (!apiKey) return res.status(401).json({ error: 'Missing API key' });
 
-  const response = await fetch('${BASE_URL}/api/v1/validate', {
+  const response = await fetch('${API_URL}/api/v1/validate', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ apiKey })
@@ -430,7 +474,7 @@ from fastapi import Header, HTTPException
 async def validate_key(x_api_key: str = Header(...)):
     async with httpx.AsyncClient() as client:
         res = await client.post(
-            "${BASE_URL}/api/v1/validate",
+            "${API_URL}/api/v1/validate",
             json={"apiKey": x_api_key}
         )
     if not res.json().get("valid"):
@@ -439,6 +483,200 @@ async def validate_key(x_api_key: str = Header(...)):
 @app.get("/protected", dependencies=[Depends(validate_key)])
 async def protected_route():
     return {"message": "Access granted!"}`}</div>
+        </>
+    )
+}
+
+function AIProxySection() {
+    return (
+        <>
+            <h1>AI Proxy (OpenAI-Compatible)</h1>
+            <p className="docs-intro">
+                RagsPro includes an OpenAI-compatible AI proxy. Use your <code>akm_</code> API key to call
+                chat completions, list models, and generate images. The proxy validates your key, forwards
+                to upstream AI providers (NVIDIA, OpenAI), and tracks usage automatically.
+            </p>
+
+            <div className="docs-alert info">
+                <Info size={18} />
+                <span>AI Proxy endpoints use <code>/v1</code> prefix (no <code>/api</code>). Authenticate with your <code>akm_</code> key in the <code>Authorization: Bearer</code> header.</span>
+            </div>
+
+            <h2>List Models</h2>
+            <div className="endpoint-card">
+                <div className="endpoint-header">
+                    <span className="method-badge get">GET</span>
+                    <span className="endpoint-path">/v1/models</span>
+                    <span className="endpoint-desc">List available AI models</span>
+                </div>
+                <div className="endpoint-body">
+                    <h4>Example</h4>
+                    <div className="doc-code-block">{`curl ${API_URL}/v1/models \\
+  -H "Authorization: Bearer akm_your_key_here"`}</div>
+                    <h4>Response</h4>
+                    <div className="doc-code-block">{`{
+  "object": "list",
+  "data": [
+    {"id": "meta/llama-3.1-8b-instruct", "object": "model", "owned_by": "nvidia"},
+    {"id": "meta/llama-3.1-70b-instruct", "object": "model", "owned_by": "nvidia"},
+    {"id": "nvidia/llama-3.1-nemotron-70b-instruct", "object": "model", "owned_by": "nvidia"},
+    {"id": "google/gemma-2-9b-it", "object": "model", "owned_by": "nvidia"},
+    {"id": "mistralai/mistral-7b-instruct-v0.3", "object": "model", "owned_by": "nvidia"},
+    {"id": "moonshotai/kimi-k2.5", "object": "model", "owned_by": "nvidia"},
+    {"id": "stabilityai/stable-diffusion-xl", "object": "model", "owned_by": "nvidia"}
+  ]
+}`}</div>
+                </div>
+            </div>
+
+            <h2>Chat Completions</h2>
+            <div className="endpoint-card">
+                <div className="endpoint-header">
+                    <span className="method-badge post">POST</span>
+                    <span className="endpoint-path">/v1/chat/completions</span>
+                    <span className="endpoint-desc">Chat with AI models (OpenAI-compatible)</span>
+                </div>
+                <div className="endpoint-body">
+                    <h4>Request Body</h4>
+                    <table className="params-table">
+                        <thead><tr><th>Field</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+                        <tbody>
+                            <tr><td><code>model</code></td><td>string</td><td>Yes</td><td>Model ID from /v1/models</td></tr>
+                            <tr><td><code>messages</code></td><td>array</td><td>Yes</td><td>Chat messages (role + content)</td></tr>
+                            <tr><td><code>max_tokens</code></td><td>integer</td><td>No</td><td>Max tokens to generate</td></tr>
+                            <tr><td><code>temperature</code></td><td>float</td><td>No</td><td>Creativity (0.0 - 2.0)</td></tr>
+                            <tr><td><code>stream</code></td><td>boolean</td><td>No</td><td>Enable streaming (SSE)</td></tr>
+                        </tbody>
+                    </table>
+                    <h4>Example</h4>
+                    <div className="doc-code-block">{`curl -X POST ${API_URL}/v1/chat/completions \\
+  -H "Authorization: Bearer akm_your_key_here" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "model": "meta/llama-3.1-8b-instruct",
+    "messages": [
+      {"role": "system", "content": "You are a helpful assistant."},
+      {"role": "user", "content": "What is an API gateway?"}
+    ],
+    "max_tokens": 200,
+    "temperature": 0.7
+  }'`}</div>
+                    <h4>Response</h4>
+                    <div className="doc-code-block">{`{
+  "id": "chatcmpl-abc123",
+  "object": "chat.completion",
+  "created": 1707868800,
+  "model": "meta/llama-3.1-8b-instruct",
+  "choices": [{
+    "index": 0,
+    "message": {
+      "role": "assistant",
+      "content": "An API gateway is a server that acts as..."
+    },
+    "finish_reason": "stop"
+  }],
+  "usage": {
+    "prompt_tokens": 25,
+    "completion_tokens": 150,
+    "total_tokens": 175
+  },
+  "_gateway": {
+    "keyId": "VQPxtKvu0Wiu...",
+    "provider": "nvidia",
+    "responseTimeMs": 457.97
+  }
+}`}</div>
+                </div>
+            </div>
+
+            <h2>Streaming</h2>
+            <div className="endpoint-card">
+                <div className="endpoint-header">
+                    <span className="method-badge post">POST</span>
+                    <span className="endpoint-path">/v1/chat/completions</span>
+                    <span className="endpoint-desc">Stream responses via Server-Sent Events</span>
+                </div>
+                <div className="endpoint-body">
+                    <h4>Example (curl)</h4>
+                    <div className="doc-code-block">{`curl -X POST ${API_URL}/v1/chat/completions \\
+  -H "Authorization: Bearer akm_your_key_here" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "model": "meta/llama-3.1-8b-instruct",
+    "messages": [{"role": "user", "content": "Hello!"}],
+    "stream": true
+  }'
+
+# Response: Server-Sent Events
+data: {"choices":[{"delta":{"content":"Hello"}}]}
+data: {"choices":[{"delta":{"content":"!"}}]}
+data: {"choices":[{"delta":{"content":" How"}}]}
+data: [DONE]`}</div>
+                    <h4>JavaScript Streaming</h4>
+                    <div className="doc-code-block">{`const response = await fetch('${API_URL}/v1/chat/completions', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer akm_your_key_here',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    model: 'meta/llama-3.1-8b-instruct',
+    messages: [{ role: 'user', content: 'Hello!' }],
+    stream: true
+  })
+});
+
+const reader = response.body.getReader();
+const decoder = new TextDecoder();
+
+while (true) {
+  const { value, done } = await reader.read();
+  if (done) break;
+  const chunk = decoder.decode(value);
+  // Parse SSE: each line starts with "data: "
+  const lines = chunk.split('\\n').filter(l => l.startsWith('data: '));
+  for (const line of lines) {
+    const data = line.slice(6);
+    if (data === '[DONE]') break;
+    const parsed = JSON.parse(data);
+    process.stdout.write(parsed.choices[0]?.delta?.content || '');
+  }
+}`}</div>
+                </div>
+            </div>
+
+            <h2>Image Generation</h2>
+            <div className="endpoint-card">
+                <div className="endpoint-header">
+                    <span className="method-badge post">POST</span>
+                    <span className="endpoint-path">/v1/images/generations</span>
+                    <span className="endpoint-desc">Generate images from text</span>
+                </div>
+                <div className="endpoint-body">
+                    <h4>Example</h4>
+                    <div className="doc-code-block">{`curl -X POST ${API_URL}/v1/images/generations \\
+  -H "Authorization: Bearer akm_your_key_here" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "model": "stabilityai/stable-diffusion-xl",
+    "prompt": "A futuristic city skyline at sunset"
+  }'`}</div>
+                </div>
+            </div>
+
+            <h2>Available Models</h2>
+            <table className="params-table">
+                <thead><tr><th>Model ID</th><th>Type</th><th>Best For</th></tr></thead>
+                <tbody>
+                    <tr><td><code>meta/llama-3.1-8b-instruct</code></td><td>Chat</td><td>Fast responses, general tasks</td></tr>
+                    <tr><td><code>meta/llama-3.1-70b-instruct</code></td><td>Chat</td><td>Complex reasoning, coding</td></tr>
+                    <tr><td><code>nvidia/llama-3.1-nemotron-70b-instruct</code></td><td>Chat</td><td>High quality, instruction following</td></tr>
+                    <tr><td><code>google/gemma-2-9b-it</code></td><td>Chat</td><td>Lightweight, efficient</td></tr>
+                    <tr><td><code>mistralai/mistral-7b-instruct-v0.3</code></td><td>Chat</td><td>Fast, multilingual</td></tr>
+                    <tr><td><code>moonshotai/kimi-k2.5</code></td><td>Chat</td><td>Advanced reasoning</td></tr>
+                    <tr><td><code>stabilityai/stable-diffusion-xl</code></td><td>Image</td><td>Image generation</td></tr>
+                </tbody>
+            </table>
         </>
     )
 }
@@ -465,7 +703,7 @@ function AdminSection() {
   "total_users": 42,
   "total_keys": 156,
   "active_keys": 128,
-  "total_validations": 45_230,
+  "total_validations": 45230,
   "providers": {"nvidia": 45, "openai": 32, "internal": 79}
 }`}</div>
                 </div>
@@ -503,11 +741,14 @@ function AdminSection() {
                     <span className="endpoint-desc">API + DB health (no auth required)</span>
                 </div>
                 <div className="endpoint-body">
+                    <h4>Example</h4>
+                    <div className="doc-code-block">{`curl ${API_URL}/api/v1/health`}</div>
+                    <h4>Response</h4>
                     <div className="doc-code-block">{`{
   "status": "healthy",
   "checks": {"api": "healthy", "database": "healthy"},
   "version": "2.0.0",
-  "timestamp": "2026-02-13T18:09:19Z"
+  "timestamp": "2026-02-14T04:00:00Z"
 }`}</div>
                 </div>
             </div>
@@ -526,16 +767,16 @@ function ExamplesSection() {
             <h2>Python — Full Workflow</h2>
             <div className="doc-code-block">{`import requests
 
-BASE = "${BASE_URL}/api/v1"
+API = "${API_URL}/api/v1"
 
 # 1. Register
-requests.post(f"{BASE}/auth/register", json={
+requests.post(f"{API}/auth/register", json={
     "email": "dev@myapp.com",
     "password": "SecurePass123"
 })
 
 # 2. Login
-tokens = requests.post(f"{BASE}/auth/login", json={
+tokens = requests.post(f"{API}/auth/login", json={
     "email": "dev@myapp.com",
     "password": "SecurePass123"
 }).json()
@@ -543,35 +784,92 @@ tokens = requests.post(f"{BASE}/auth/login", json={
 headers = {"Authorization": f"Bearer {tokens['access_token']}"}
 
 # 3. Create a key
-key = requests.post(f"{BASE}/keys", json={
+key = requests.post(f"{API}/keys", json={
     "label": "Production NVIDIA",
     "provider": "nvidia",
-    "scope": "read_write",
-    "usage_quota": 10000,
-    "expires_in_days": 90
+    "scope": "full_access"
 }, headers=headers).json()
 
-print(f"Key created: {key['raw_key']}")
+api_key = key["keyValue"]  # Save this! Starts with akm_
+print(f"Key: {api_key}")
 
-# 4. Validate the key (from any service)
-result = requests.post(f"{BASE}/validate", json={
-    "apiKey": key["raw_key"]
-}).json()
-
-print(f"Valid: {result['valid']}")  # True
-
-# 5. List all keys
-keys = requests.get(f"{BASE}/keys", headers=headers).json()
-print(f"Total keys: {len(keys['keys'])}")
-
-# 6. Rotate a key
-new_key = requests.post(
-    f"{BASE}/keys/{key['key_id']}/rotate",
-    headers=headers
+# 4. Use the key for AI chat
+response = requests.post(f"${API_URL}/v1/chat/completions",
+    headers={"Authorization": f"Bearer {api_key}"},
+    json={
+        "model": "meta/llama-3.1-8b-instruct",
+        "messages": [{"role": "user", "content": "Hello!"}]
+    }
 ).json()
-print(f"New key: {new_key['raw_key']}")`}</div>
 
-            <h2>JavaScript — Express Middleware</h2>
+print(response["choices"][0]["message"]["content"])
+
+# 5. Validate the key (from any service)
+result = requests.post(f"{API}/validate", json={
+    "apiKey": api_key
+}).json()
+print(f"Valid: {result['valid']}")  # True`}</div>
+
+            <h2>JavaScript — AI Chatbot</h2>
+            <div className="doc-code-block">{`const API_KEY = 'akm_your_key_here';
+const API_URL = '${API_URL}';
+
+async function chat(message) {
+  const response = await fetch(API_URL + '/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': \`Bearer \${API_KEY}\`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      model: 'meta/llama-3.1-8b-instruct',
+      messages: [
+        { role: 'system', content: 'You are a helpful assistant.' },
+        { role: 'user', content: message }
+      ],
+      max_tokens: 500
+    })
+  });
+
+  const data = await response.json();
+  return data.choices[0].message.content;
+}
+
+// Usage
+const reply = await chat('What is an API gateway?');
+console.log(reply);`}</div>
+
+            <h2>Python — AI Chatbot</h2>
+            <div className="doc-code-block">{`import requests
+
+API_KEY = "akm_your_key_here"
+API_URL = "${API_URL}"
+
+def chat(message, history=[]):
+    history.append({"role": "user", "content": message})
+    response = requests.post(
+        f"{API_URL}/v1/chat/completions",
+        headers={"Authorization": f"Bearer {API_KEY}"},
+        json={
+            "model": "meta/llama-3.1-8b-instruct",
+            "messages": history,
+            "max_tokens": 500
+        }
+    ).json()
+    reply = response["choices"][0]["message"]["content"]
+    history.append({"role": "assistant", "content": reply})
+    return reply
+
+# Interactive chatbot
+print("RagsPro AI Chatbot (type 'quit' to exit)")
+history = [{"role": "system", "content": "You are a helpful assistant."}]
+while True:
+    user_input = input("You: ")
+    if user_input.lower() == "quit":
+        break
+    print(f"AI: {chat(user_input, history)}")`}</div>
+
+            <h2>React — Express Middleware</h2>
             <div className="doc-code-block">{`const express = require('express');
 const app = express();
 
@@ -584,7 +882,7 @@ async function requireApiKey(req, res, next) {
   }
 
   try {
-    const response = await fetch('${BASE_URL}/api/v1/validate', {
+    const response = await fetch('${API_URL}/api/v1/validate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ apiKey })
@@ -595,7 +893,7 @@ async function requireApiKey(req, res, next) {
       return res.status(403).json({ error: 'Invalid API key' });
     }
     
-    req.apiKeyInfo = data; // Attach key info to request
+    req.apiKeyInfo = data;
     next();
   } catch (err) {
     return res.status(500).json({ error: 'Validation service unavailable' });
@@ -612,24 +910,6 @@ app.get('/api/data', requireApiKey, (req, res) => {
 });
 
 app.listen(3001, () => console.log('Server running on :3001'));`}</div>
-
-            <h2>React — API Client</h2>
-            <div className="doc-code-block">{`// apiClient.ts
-const API_KEY = import.meta.env.VITE_API_KEY;
-
-async function fetchWithKey(url: string, options: RequestInit = {}) {
-  return fetch(url, {
-    ...options,
-    headers: {
-      ...options.headers,
-      'X-API-Key': API_KEY,
-      'Content-Type': 'application/json',
-    },
-  });
-}
-
-// Usage in component
-const data = await fetchWithKey('https://your-api.com/data');`}</div>
         </>
     )
 }
@@ -645,12 +925,13 @@ function ErrorsSection() {
                 <tbody>
                     <tr><td><code>200</code></td><td>Success</td></tr>
                     <tr><td><code>400</code></td><td>Bad request — validation error</td></tr>
-                    <tr><td><code>401</code></td><td>Unauthorized — missing or expired JWT</td></tr>
-                    <tr><td><code>403</code></td><td>Forbidden — insufficient permissions</td></tr>
+                    <tr><td><code>401</code></td><td>Unauthorized — missing or expired JWT / API key</td></tr>
+                    <tr><td><code>403</code></td><td>Forbidden — insufficient permissions or invalid key</td></tr>
                     <tr><td><code>404</code></td><td>Not found — resource doesn't exist</td></tr>
                     <tr><td><code>422</code></td><td>Unprocessable — invalid request body</td></tr>
                     <tr><td><code>429</code></td><td>Rate limited — too many requests</td></tr>
                     <tr><td><code>500</code></td><td>Server error</td></tr>
+                    <tr><td><code>502</code></td><td>Upstream AI provider error</td></tr>
                 </tbody>
             </table>
 

@@ -14,7 +14,7 @@ const codeExamples = {
 <span class="code-comment"># Create an API key</span>
 <span class="code-variable">headers</span> = {"Authorization": <span class="code-string">"Bearer YOUR_JWT_TOKEN"</span>}
 <span class="code-variable">res</span> = requests.<span class="code-function">post</span>(
-    <span class="code-string">"https://api.ragspro.com/api/v1/keys"</span>,
+    <span class="code-string">"https://api-key-backend-xsdo.onrender.com/api/v1/keys"</span>,
     json={"label": <span class="code-string">"Production"</span>, "provider": <span class="code-string">"nvidia"</span>},
     headers=headers
 )
@@ -22,14 +22,14 @@ const codeExamples = {
 
 <span class="code-comment"># Validate a key</span>
 <span class="code-variable">valid</span> = requests.<span class="code-function">post</span>(
-    <span class="code-string">"https://api.ragspro.com/api/v1/validate"</span>,
+    <span class="code-string">"https://api-key-backend-xsdo.onrender.com/api/v1/validate"</span>,
     json={"apiKey": api_key}
 ).json()[<span class="code-string">"valid"</span>]  <span class="code-comment"># True</span>`,
     },
     javascript: {
         label: 'JavaScript',
         code: `<span class="code-comment">// Create an API key</span>
-<span class="code-keyword">const</span> res = <span class="code-keyword">await</span> <span class="code-function">fetch</span>(<span class="code-string">"https://api.ragspro.com/api/v1/keys"</span>, {
+<span class="code-keyword">const</span> res = <span class="code-keyword">await</span> <span class="code-function">fetch</span>(<span class="code-string">"https://api-key-backend-xsdo.onrender.com/api/v1/keys"</span>, {
   method: <span class="code-string">"POST"</span>,
   headers: {
     <span class="code-string">"Authorization"</span>: <span class="code-string">\`Bearer \${token}\`</span>,
@@ -44,20 +44,20 @@ const codeExamples = {
 
 <span class="code-comment">// Validate a key</span>
 <span class="code-keyword">const</span> { <span class="code-variable">valid</span> } = <span class="code-keyword">await</span> <span class="code-function">fetch</span>(
-  <span class="code-string">"https://api.ragspro.com/api/v1/validate"</span>,
+  <span class="code-string">"https://api-key-backend-xsdo.onrender.com/api/v1/validate"</span>,
   { method: <span class="code-string">"POST"</span>, body: JSON.<span class="code-function">stringify</span>({ apiKey: raw_key }) }
 ).<span class="code-function">then</span>(r => r.<span class="code-function">json</span>());</span>`,
     },
     curl: {
         label: 'cURL',
         code: `<span class="code-comment"># Create an API key</span>
-<span class="code-function">curl</span> -X POST <span class="code-string">https://api.ragspro.com/api/v1/keys</span> \\
+<span class="code-function">curl</span> -X POST <span class="code-string">https://api-key-backend-xsdo.onrender.com/api/v1/keys</span> \\
   -H <span class="code-string">"Authorization: Bearer YOUR_JWT_TOKEN"</span> \\
   -H <span class="code-string">"Content-Type: application/json"</span> \\
   -d <span class="code-string">'{"label": "Production", "provider": "nvidia"}'</span>
 
 <span class="code-comment"># Validate a key</span>
-<span class="code-function">curl</span> -X POST <span class="code-string">https://api.ragspro.com/api/v1/validate</span> \\
+<span class="code-function">curl</span> -X POST <span class="code-string">https://api-key-backend-xsdo.onrender.com/api/v1/validate</span> \\
   -H <span class="code-string">"Content-Type: application/json"</span> \\
   -d <span class="code-string">'{"apiKey": "akm_your_key_here"}'</span>`,
     },

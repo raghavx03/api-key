@@ -1,9 +1,8 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { motion } from 'framer-motion'
 import {
-    Key, Shield, Zap, BarChart3, RotateCw, Users,
-    Globe, ArrowRight, Check, BookOpen,
+    Shield, Zap, BarChart3, RotateCw, Users,
+    Globe, ArrowRight, Check, BookOpen, Menu, X, Minus,
 } from 'lucide-react'
 import './LandingPage.css'
 
@@ -25,7 +24,7 @@ const codeExamples = {
 <span class="code-variable">valid</span> = requests.<span class="code-function">post</span>(
     <span class="code-string">"https://api.ragspro.com/api/v1/validate"</span>,
     json={"apiKey": api_key}
-).json()[<span class="code-string">"valid"</span>]  <span class="code-comment"># True ✅</span>`,
+).json()[<span class="code-string">"valid"</span>]  <span class="code-comment"># True</span>`,
     },
     javascript: {
         label: 'JavaScript',
@@ -47,7 +46,7 @@ const codeExamples = {
 <span class="code-keyword">const</span> { <span class="code-variable">valid</span> } = <span class="code-keyword">await</span> <span class="code-function">fetch</span>(
   <span class="code-string">"https://api.ragspro.com/api/v1/validate"</span>,
   { method: <span class="code-string">"POST"</span>, body: JSON.<span class="code-function">stringify</span>({ apiKey: raw_key }) }
-).<span class="code-function">then</span>(r => r.<span class="code-function">json</span>()); <span class="code-comment">// true ✅</span>`,
+).<span class="code-function">then</span>(r => r.<span class="code-function">json</span>());</span>`,
     },
     curl: {
         label: 'cURL',
@@ -65,42 +64,49 @@ const codeExamples = {
 }
 
 const features = [
-    { icon: <Shield size={22} />, color: 'blue', title: 'AES-256 Encryption', desc: 'Every API key is encrypted at rest using Fernet symmetric encryption. Keys are never stored in plaintext.' },
-    { icon: <Users size={22} />, color: 'purple', title: 'Role-Based Access', desc: 'Admin, User, and Viewer roles with granular permissions. Control who can create, read, or manage keys.' },
-    { icon: <Zap size={22} />, color: 'green', title: 'Sub-10ms Validation', desc: 'Lightning-fast key validation endpoint. Integrate into your middleware for instant authentication.' },
-    { icon: <BarChart3 size={22} />, color: 'pink', title: 'Real-time Analytics', desc: 'Track usage per key — total calls, average response time, last used timestamp, and provider breakdown.' },
-    { icon: <RotateCw size={22} />, color: 'yellow', title: 'Key Rotation', desc: 'One-click key rotation. Old key is disabled, new key is generated. Zero downtime key management.' },
-    { icon: <Globe size={22} />, color: 'cyan', title: 'Multi-Provider Support', desc: 'Manage keys for NVIDIA, OpenAI, internal services, and any custom provider. All in one dashboard.' },
+    { icon: <Shield size={20} />, color: 'blue', title: 'AES-256 Encryption', desc: 'Every API key is encrypted at rest using Fernet symmetric encryption. Keys are never stored in plaintext.' },
+    { icon: <Users size={20} />, color: 'purple', title: 'Role-Based Access', desc: 'Admin, User, and Viewer roles with granular permissions. Control who can create, read, or manage keys.' },
+    { icon: <Zap size={20} />, color: 'green', title: 'Sub-10ms Validation', desc: 'Lightning-fast key validation endpoint. Integrate into your middleware for instant authentication.' },
+    { icon: <BarChart3 size={20} />, color: 'pink', title: 'Real-time Analytics', desc: 'Track usage per key — total calls, average response time, last used timestamp, and provider breakdown.' },
+    { icon: <RotateCw size={20} />, color: 'yellow', title: 'Key Rotation', desc: 'One-click key rotation. Old key is disabled, new key is generated. Zero downtime key management.' },
+    { icon: <Globe size={20} />, color: 'cyan', title: 'Multi-Provider Support', desc: 'Manage keys for NVIDIA, OpenAI, internal services, and any custom provider — all in one dashboard.' },
 ]
 
 export default function LandingPage() {
     const [activeTab, setActiveTab] = useState<'python' | 'javascript' | 'curl'>('python')
+    const [mobileOpen, setMobileOpen] = useState(false)
 
     return (
         <div className="landing-page">
-            {/* Navbar */}
+            {/* Floating Pill Navbar */}
             <nav className="landing-nav">
                 <Link to="/" className="nav-logo">
-                    <div className="logo-icon"><Key size={18} color="#fff" /></div>
+                    <img src="/logo.png" alt="RagsPro" />
                     RagsPro API
                 </Link>
                 <div className="nav-links">
                     <a href="#features">Features</a>
-                    <a href="#how-it-works">How It Works</a>
+                    <a href="#pricing">Pricing</a>
                     <Link to="/docs">Docs</Link>
                     <Link to="/login" className="nav-cta">Get Started</Link>
                 </div>
+                <button className="nav-hamburger" onClick={() => setMobileOpen(!mobileOpen)} aria-label="Menu">
+                    {mobileOpen ? <X size={20} /> : <Menu size={20} />}
+                </button>
             </nav>
 
+            {/* Mobile Menu */}
+            <div className={`mobile-menu ${mobileOpen ? 'open' : ''}`}>
+                <a href="#features" onClick={() => setMobileOpen(false)}>Features</a>
+                <a href="#pricing" onClick={() => setMobileOpen(false)}>Pricing</a>
+                <Link to="/docs" onClick={() => setMobileOpen(false)}>Documentation</Link>
+                <Link to="/login" className="nav-cta" onClick={() => setMobileOpen(false)}>Get Started</Link>
+            </div>
+
             {/* Hero */}
-            <motion.section
-                className="hero-section"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6 }}
-            >
+            <section className="hero-section">
                 <div className="hero-badge">
-                    <Zap size={14} /> Now with NVIDIA + OpenAI support
+                    Now with NVIDIA + OpenAI support
                 </div>
                 <h1 className="hero-title">
                     Manage API Keys<br />
@@ -112,20 +118,15 @@ export default function LandingPage() {
                 </p>
                 <div className="hero-buttons">
                     <Link to="/login" className="btn-hero-primary">
-                        Start Free <ArrowRight size={18} />
+                        Start Free <ArrowRight size={16} />
                     </Link>
                     <Link to="/docs" className="btn-hero-secondary">
-                        <BookOpen size={18} /> Read Docs
+                        <BookOpen size={16} /> Read Docs
                     </Link>
                 </div>
 
                 {/* Code Preview */}
-                <motion.div
-                    className="hero-code"
-                    initial={{ opacity: 0, y: 30 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.3, duration: 0.6 }}
-                >
+                <div className="hero-code">
                     <div className="code-header">
                         <span className="code-dot red" />
                         <span className="code-dot yellow" />
@@ -135,7 +136,7 @@ export default function LandingPage() {
                                 <button
                                     key={key}
                                     className={`code-tab ${activeTab === key ? 'active' : ''}`}
-                                    onClick={() => setActiveTab(key as any)}
+                                    onClick={() => setActiveTab(key as 'python' | 'javascript' | 'curl')}
                                 >
                                     {val.label}
                                 </button>
@@ -145,8 +146,8 @@ export default function LandingPage() {
                     <div className="code-body">
                         <pre dangerouslySetInnerHTML={{ __html: codeExamples[activeTab].code }} />
                     </div>
-                </motion.div>
-            </motion.section>
+                </div>
+            </section>
 
             {/* Stats */}
             <div className="stats-bar">
@@ -154,18 +155,12 @@ export default function LandingPage() {
                     { num: '17', label: 'API Endpoints' },
                     { num: 'AES-256', label: 'Encryption' },
                     { num: '<10ms', label: 'Validation Speed' },
-                    { num: '100%', label: 'Open Source' },
+                    { num: '99.9%', label: 'Uptime SLA' },
                 ].map((s, i) => (
-                    <motion.div
-                        key={i}
-                        className="stat-item"
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.4 + i * 0.1 }}
-                    >
+                    <div key={i} className="stat-item">
                         <div className="stat-number">{s.num}</div>
                         <div className="stat-label">{s.label}</div>
-                    </motion.div>
+                    </div>
                 ))}
             </div>
 
@@ -178,18 +173,11 @@ export default function LandingPage() {
                 </p>
                 <div className="features-grid">
                     {features.map((f, i) => (
-                        <motion.div
-                            key={i}
-                            className="feature-card"
-                            initial={{ opacity: 0, y: 20 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true }}
-                            transition={{ delay: i * 0.1 }}
-                        >
+                        <div key={i} className="feature-card">
                             <div className={`feature-card-icon ${f.color}`}>{f.icon}</div>
                             <h3>{f.title}</h3>
                             <p>{f.desc}</p>
-                        </motion.div>
+                        </div>
                     ))}
                 </div>
             </section>
@@ -202,22 +190,15 @@ export default function LandingPage() {
                     {[
                         { n: '1', title: 'Create an Account', desc: 'Sign up with your email. Get admin access to the dashboard instantly. No credit card required.' },
                         { n: '2', title: 'Generate API Keys', desc: 'Create keys for any provider — NVIDIA, OpenAI, or your internal services. Set scopes, quotas, and expiry.' },
-                        { n: '3', title: 'Integrate & Ship', desc: 'Use the /validate endpoint in your apps. Track usage in real-time from your dashboard.' },
+                        { n: '3', title: 'Integrate and Ship', desc: 'Use the /validate endpoint in your apps. Track usage in real-time from your dashboard.' },
                     ].map((s, i) => (
-                        <motion.div
-                            key={i}
-                            className="step-card"
-                            initial={{ opacity: 0, x: -20 }}
-                            whileInView={{ opacity: 1, x: 0 }}
-                            viewport={{ once: true }}
-                            transition={{ delay: i * 0.15 }}
-                        >
+                        <div key={i} className="step-card">
                             <div className="step-number">{s.n}</div>
                             <div>
                                 <h3>{s.title}</h3>
                                 <p>{s.desc}</p>
                             </div>
-                        </motion.div>
+                        </div>
                     ))}
                 </div>
             </section>
@@ -225,37 +206,62 @@ export default function LandingPage() {
             {/* Pricing */}
             <section className="pricing-section" id="pricing">
                 <div className="section-label">Pricing</div>
-                <h2 className="section-title">Simple & Free</h2>
+                <h2 className="section-title">Simple, Transparent Pricing</h2>
                 <p className="section-subtitle">
-                    Everything included. No hidden fees.
+                    Start free, scale when you need to.
                 </p>
-                <motion.div
-                    className="pricing-card"
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    whileInView={{ opacity: 1, scale: 1 }}
-                    viewport={{ once: true }}
-                >
-                    <div className="pricing-badge">Free Forever</div>
-                    <div className="pricing-price">$0</div>
-                    <div className="pricing-period">No credit card required</div>
-                    <ul className="pricing-features">
-                        {[
-                            'Unlimited API keys',
-                            'AES-256 encryption at rest',
-                            'Role-based access control',
-                            'Real-time usage analytics',
-                            'Key rotation & expiry',
-                            'Multi-provider support',
-                            '60 req/min rate limit',
-                            'REST API access',
-                        ].map((f, i) => (
-                            <li key={i}><Check size={18} /> {f}</li>
-                        ))}
-                    </ul>
-                    <Link to="/login" className="btn-pricing">
-                        Get Started Free <ArrowRight size={18} style={{ display: 'inline', marginLeft: 6 }} />
-                    </Link>
-                </motion.div>
+                <div className="pricing-grid">
+                    {/* Free Plan */}
+                    <div className="pricing-card">
+                        <div className="pricing-name">Free</div>
+                        <div className="pricing-price">$0</div>
+                        <div className="pricing-period">Free forever</div>
+                        <ul className="pricing-features">
+                            {[
+                                { text: 'Up to 10 API keys', active: true },
+                                { text: 'AES-256 encryption', active: true },
+                                { text: 'Basic analytics', active: true },
+                                { text: '60 req/min rate limit', active: true },
+                                { text: 'Key rotation', active: true },
+                                { text: 'Community support', active: true },
+                                { text: 'Custom providers', active: false },
+                                { text: 'Priority support', active: false },
+                            ].map((f, i) => (
+                                <li key={i} className={f.active ? '' : 'disabled'}>
+                                    {f.active ? <Check size={15} /> : <Minus size={15} />}
+                                    {f.text}
+                                </li>
+                            ))}
+                        </ul>
+                        <Link to="/login" className="btn-pricing">Get Started</Link>
+                    </div>
+
+                    {/* Pro Plan */}
+                    <div className="pricing-card popular">
+                        <div className="pricing-badge">Most Popular</div>
+                        <div className="pricing-name">Pro</div>
+                        <div className="pricing-price">$19<span>/mo</span></div>
+                        <div className="pricing-period">Billed monthly</div>
+                        <ul className="pricing-features">
+                            {[
+                                { text: 'Unlimited API keys', active: true },
+                                { text: 'AES-256 encryption', active: true },
+                                { text: 'Advanced analytics', active: true },
+                                { text: '1,000 req/min rate limit', active: true },
+                                { text: 'Key rotation', active: true },
+                                { text: 'Priority email support', active: true },
+                                { text: 'Custom providers', active: true },
+                                { text: 'Team management', active: true },
+                            ].map((f, i) => (
+                                <li key={i} className={f.active ? '' : 'disabled'}>
+                                    {f.active ? <Check size={15} /> : <Minus size={15} />}
+                                    {f.text}
+                                </li>
+                            ))}
+                        </ul>
+                        <Link to="/login" className="btn-pricing primary">Start Free Trial</Link>
+                    </div>
+                </div>
             </section>
 
             {/* Footer */}
@@ -267,7 +273,7 @@ export default function LandingPage() {
                     <a href="https://ragspro.com" target="_blank" rel="noopener noreferrer">RagsPro</a>
                 </div>
                 <p className="footer-copy">
-                    © {new Date().getFullYear()} RagsPro. Built with ❤️ for developers.
+                    {new Date().getFullYear()} RagsPro. All rights reserved.
                 </p>
             </footer>
         </div>

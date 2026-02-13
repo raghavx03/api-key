@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Key, AlertCircle, Info } from 'lucide-react'
+import { AlertCircle, Info } from 'lucide-react'
+import './LandingPage.css'
 import './Docs.css'
 
 type Section = 'intro' | 'auth' | 'keys' | 'validate' | 'admin' | 'errors' | 'examples'
@@ -15,7 +16,7 @@ export default function Docs() {
             {/* Reuse landing nav */}
             <nav className="landing-nav">
                 <Link to="/" className="nav-logo">
-                    <div className="logo-icon"><Key size={18} color="#fff" /></div>
+                    <img src="/logo.png" alt="RagsPro" />
                     RagsPro API
                 </Link>
                 <div className="nav-links">

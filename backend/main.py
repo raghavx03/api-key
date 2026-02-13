@@ -13,6 +13,7 @@ Production-grade FastAPI backend with:
 - Key rotation, IP whitelisting, usage quotas
 """
 
+
 from fastapi import FastAPI, Depends, HTTPException, Header, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, field_validator
@@ -25,6 +26,11 @@ import time
 from datetime import datetime, timezone, timedelta
 from cryptography.fernet import Fernet
 import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+
 from sqlalchemy import create_engine, Column, String, DateTime, Boolean, Integer, JSON, Index, Float, text, inspect as sa_inspect
 from sqlalchemy.orm import DeclarativeBase, sessionmaker, Session
 import bcrypt

@@ -15,6 +15,7 @@ Production-grade FastAPI backend with:
 
 
 from fastapi import FastAPI, Depends, HTTPException, Header, Query, Request, Response
+from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, field_validator
 from typing import Optional, List
@@ -49,6 +50,8 @@ RAZORPAY_KEY_SECRET = os.getenv("RAZORPAY_KEY_SECRET", "")
 SUPER_ADMIN_EMAIL = "ragsproai@gmail.com"
 ENCRYPTION_KEY = os.getenv("ENCRYPTION_KEY", Fernet.generate_key().decode())
 NVIDIA_API_KEY = os.getenv("NVIDIA_API_KEY", "")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", secrets.token_urlsafe(64))
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "15"))
@@ -1192,6 +1195,272 @@ async def verify_razorpay_payment(
         "plan": "pro",
         "message": "Successfully upgraded to Pro plan!",
     }
+
+# ─────── AI Proxy Module ───────
+
+AVAILABLE_MODELS = [
+    {"id": "meta/llama-3.1-8b-instruct", "object": "model", "owned_by": "meta", "type": "chat"},
+    {"id": "meta/llama-3.1-70b-instruct", "object": "model", "owned_by": "meta", "type": "chat"},
+    {"id": "nvidia/llama-3.1-nemotron-70b-instruct", "object": "model", "owned_by": "nvidia", "type": "chat"},
+    {"id": "google/gemma-2-9b-it", "object": "model", "owned_by": "google", "type": "chat"},
+    {"id": "mistralai/mistral-7b-instruct-v0.3", "object": "model", "owned_by": "mistralai", "type": "chat"},
+    {"id": "stabilityai/stable-diffusion-xl", "object": "model", "owned_by": "stabilityai", "type": "image"},
+]
+
+NVIDIA_CHAT_URL = "https://integrate.api.nvidia.com/v1/chat/completions"
+NVIDIA_IMAGE_URL = "https://ai.api.nvidia.com/v1/genai/stabilityai/stable-diffusion-xl"
+
+
+def get_upstream_config():
+    """Determine which upstream provider to use based on available keys."""
+    if NVIDIA_API_KEY and not NVIDIA_API_KEY.startswith("your"):
+        return {
+            "url": NVIDIA_CHAT_URL,
+            "api_key": NVIDIA_API_KEY,
+            "provider": "nvidia",
+        }
+    if OPENAI_API_KEY and not OPENAI_API_KEY.startswith("your"):
+        return {
+            "url": f"{OPENAI_BASE_URL}/chat/completions",
+            "api_key": OPENAI_API_KEY,
+            "provider": "openai",
+        }
+    return None
+
+
+async def validate_proxy_key(request: Request, db: Session) -> APIKey:
+    """Extract and validate API key from request headers for proxy routes."""
+    auth = request.headers.get("Authorization", "")
+    api_key_header = request.headers.get("X-API-Key", "")
+
+    key_value = None
+    if auth.startswith("Bearer "):
+        key_value = auth[7:]
+    elif api_key_header:
+        key_value = api_key_header
+
+    if not key_value:
+        raise HTTPException(status_code=401, detail="API key required. Pass via Authorization: Bearer <key> or X-API-Key header.")
+
+    key_hash_value = hash_key(key_value)
+    key = db.query(APIKey).filter(APIKey.key_hash == key_hash_value).first()
+
+    if not key:
+        raise HTTPException(status_code=401, detail="Invalid API key")
+    if key.status != "active":
+        raise HTTPException(status_code=401, detail=f"API key is {key.status}")
+
+    # Check expiry
+    if key.expires_at:
+        exp = key.expires_at if key.expires_at.tzinfo else key.expires_at.replace(tzinfo=timezone.utc)
+        if datetime.now(timezone.utc) > exp:
+            key.status = "expired"
+            db.commit()
+            raise HTTPException(status_code=401, detail="API key has expired")
+
+    # Check IP whitelist
+    client_ip = request.client.host if request.client else None
+    if key.allowed_ips and len(key.allowed_ips) > 0 and client_ip:
+        if client_ip not in key.allowed_ips:
+            raise HTTPException(status_code=403, detail=f"IP {client_ip} not whitelisted")
+
+    # Check usage quota
+    if key.usage_quota > 0 and key.usage_count >= key.usage_quota:
+        raise HTTPException(status_code=429, detail="Usage quota exceeded")
+
+    return key
+
+
+def update_key_usage(key: APIKey, response_time_ms: float, db: Session):
+    """Update usage stats for a key after a proxy call."""
+    key.usage_count += 1
+    key.last_used_at = datetime.now(timezone.utc)
+    key.total_response_time_ms += response_time_ms
+    key.avg_response_time_ms = key.total_response_time_ms / key.usage_count
+    db.commit()
+
+
+@app.get("/v1/models", tags=["AI Proxy"])
+async def list_models(request: Request, db: Session = Depends(get_db)):
+    """List available AI models. Requires a valid API key."""
+    await validate_proxy_key(request, db)
+    return {
+        "object": "list",
+        "data": [{"id": m["id"], "object": "model", "owned_by": m["owned_by"]} for m in AVAILABLE_MODELS],
+    }
+
+
+@app.post("/v1/chat/completions", tags=["AI Proxy"])
+async def proxy_chat_completions(request: Request, db: Session = Depends(get_db)):
+    """OpenAI-compatible chat completions. Validates your key, forwards to NVIDIA, returns response.
+
+    Supports streaming (stream: true) and non-streaming.
+    Available models: meta/llama-3.1-8b-instruct, meta/llama-3.1-70b-instruct, etc.
+    """
+    key = await validate_proxy_key(request, db)
+    start_time = time.time()
+
+    upstream = get_upstream_config()
+    if not upstream:
+        raise HTTPException(status_code=503, detail="No AI provider configured. Set NVIDIA_API_KEY or OPENAI_API_KEY in .env")
+
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid JSON body")
+
+    if "messages" not in body:
+        raise HTTPException(status_code=400, detail="'messages' field is required")
+
+    # Default model based on provider
+    if "model" not in body:
+        body["model"] = "meta/llama-3.1-8b-instruct" if upstream["provider"] == "nvidia" else "gpt-3.5-turbo"
+
+    upstream_headers = {
+        "Authorization": f"Bearer {upstream['api_key']}",
+        "Content-Type": "application/json",
+    }
+    upstream_url = upstream["url"]
+
+    stream = body.get("stream", False)
+
+    if stream:
+        # Streaming response
+        update_key_usage(key, (time.time() - start_time) * 1000, db)
+
+        async def generate():
+            try:
+                async with httpx.AsyncClient(timeout=120) as client:
+                    async with client.stream(
+                        "POST", upstream_url, json=body, headers=upstream_headers
+                    ) as resp:
+                        if resp.status_code != 200:
+                            error_body = await resp.aread()
+                            yield f"data: {{\"error\": \"Upstream error: {resp.status_code}\", \"detail\": {error_body.decode()}}}\n\n"
+                            return
+                        async for chunk in resp.aiter_bytes():
+                            yield chunk
+            except httpx.TimeoutException:
+                yield 'data: {"error": "Request timed out"}\n\n'
+            except Exception as e:
+                yield f'data: {{"error": "{str(e)}"}}\n\n'
+
+        return StreamingResponse(generate(), media_type="text/event-stream", headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+        })
+    else:
+        # Non-streaming response
+        try:
+            async with httpx.AsyncClient(timeout=120) as client:
+                resp = await client.post(upstream_url, json=body, headers=upstream_headers)
+
+            response_time_ms = (time.time() - start_time) * 1000
+            update_key_usage(key, response_time_ms, db)
+
+            if resp.status_code != 200:
+                raise HTTPException(status_code=resp.status_code, detail=f"Upstream error: {resp.text}")
+
+            result = resp.json()
+            result["_gateway"] = {
+                "keyId": key.key_id,
+                "responseTimeMs": round(response_time_ms, 2),
+                "usageCount": key.usage_count,
+            }
+            return result
+
+        except httpx.TimeoutException:
+            raise HTTPException(status_code=504, detail="Upstream request timed out")
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(status_code=502, detail=f"Upstream error: {str(e)}")
+
+
+@app.post("/v1/images/generations", tags=["AI Proxy"])
+async def proxy_image_generation(request: Request, db: Session = Depends(get_db)):
+    """OpenAI-compatible image generation. Translates to NVIDIA Stable Diffusion XL.
+
+    Accepts: {"prompt": "...", "size": "1024x1024", "n": 1}
+    Returns: {"data": [{"b64_json": "..."}]}
+    """
+    key = await validate_proxy_key(request, db)
+    start_time = time.time()
+
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid JSON body")
+
+    prompt = body.get("prompt", "")
+    if not prompt:
+        raise HTTPException(status_code=400, detail="'prompt' field is required")
+
+    # Parse size
+    size = body.get("size", "1024x1024")
+    try:
+        width, height = [int(x) for x in size.split("x")]
+    except (ValueError, AttributeError):
+        width, height = 1024, 1024
+
+    n = body.get("n", 1)
+
+    # Translate to NVIDIA SDXL format
+    nvidia_body = {
+        "text_prompts": [{"text": prompt, "weight": 1}],
+        "cfg_scale": body.get("cfg_scale", 5),
+        "height": height,
+        "width": width,
+        "steps": body.get("steps", 25),
+        "samples": n,
+        "seed": body.get("seed", 0),
+    }
+
+    upstream_headers = {
+        "Authorization": f"Bearer {NVIDIA_API_KEY}",
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=120) as client:
+            resp = await client.post(NVIDIA_IMAGE_URL, json=nvidia_body, headers=upstream_headers)
+
+        response_time_ms = (time.time() - start_time) * 1000
+        update_key_usage(key, response_time_ms, db)
+
+        if resp.status_code != 200:
+            raise HTTPException(status_code=resp.status_code, detail=f"Upstream error: {resp.text}")
+
+        nvidia_result = resp.json()
+
+        # Translate NVIDIA response to OpenAI format
+        images = []
+        artifacts = nvidia_result.get("artifacts", [])
+        for artifact in artifacts:
+            images.append({
+                "b64_json": artifact.get("base64", ""),
+                "revised_prompt": prompt,
+            })
+
+        return {
+            "created": int(time.time()),
+            "data": images,
+            "_gateway": {
+                "keyId": key.key_id,
+                "responseTimeMs": round(response_time_ms, 2),
+                "usageCount": key.usage_count,
+                "model": "stabilityai/stable-diffusion-xl",
+            },
+        }
+
+    except httpx.TimeoutException:
+        raise HTTPException(status_code=504, detail="Image generation timed out")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Upstream error: {str(e)}")
+
 
 # ─────── Backward Compatibility (old routes redirect) ───────
 

@@ -2,23 +2,29 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Copy requirements
-COPY backend/simple_requirements.txt /app/requirements.txt
+# Copy requirements first for better caching
+COPY requirements.txt /app/requirements.txt
 
 # Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application
+# Copy backend application
 COPY backend/ /app/backend/
 
-# Create empty JSON files if they don't exist
-RUN touch /app/users.json /app/keys.json /app/sessions.json && \
-    echo '{}' > /app/users.json && \
-    echo '{}' > /app/keys.json && \
-    echo '{}' > /app/sessions.json
+# Create logs directory
+RUN mkdir -p /app/logs
 
-# Expose port
+# Create non-root user for security
+RUN adduser --disabled-password --gecos '' appuser && \
+    chown -R appuser:appuser /app
+USER appuser
+
+# Expose port (Railway uses PORT env var)
 EXPOSE 8000
 
-# Run the application
-CMD ["python", "backend/simple_main.py"]
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health')" || exit 1
+
+# Run via uvicorn directly for production
+CMD ["python", "backend/main.py"]

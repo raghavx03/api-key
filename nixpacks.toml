@@ -5,11 +5,11 @@ nixPkgs = ["python311"]
 cmds = [
   "python -m venv /opt/venv",
   "/opt/venv/bin/pip install --upgrade pip",
-  "/opt/venv/bin/pip install -r backend/simple_requirements.txt"
+  "/opt/venv/bin/pip install -r backend/requirements.txt"
 ]
 
 [phases.build]
 cmds = []
 
 [start]
-cmd = "/opt/venv/bin/python backend/simple_main.py"
+cmd = "/opt/venv/bin/python backend/main.py"

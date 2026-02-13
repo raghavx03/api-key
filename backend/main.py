@@ -45,6 +45,9 @@ import sys
 # Configuration
 # ─────────────────────────────────────────────
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./api_keys.db")
+# Render uses postgres:// but SQLAlchemy 2.x requires postgresql://
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 RAZORPAY_KEY_ID = os.getenv("RAZORPAY_KEY_ID", "")
 RAZORPAY_KEY_SECRET = os.getenv("RAZORPAY_KEY_SECRET", "")
 SUPER_ADMIN_EMAIL = "ragsproai@gmail.com"
@@ -218,8 +221,17 @@ app = FastAPI(
     openapi_url="/api/v1/openapi.json",
 )
 
-# CORS - Specific origins only
-ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:5173,https://api-key-blush.vercel.app,https://api-key-backend-xsdo.onrender.com,https://api.ragspro.com,http://api.ragspro.com").split(",")
+# CORS - Always include production domains + env var extras
+_PRODUCTION_ORIGINS = [
+    "https://api.ragspro.com",
+    "http://api.ragspro.com",
+    "https://api-key-blush.vercel.app",
+    "https://api-key-backend-xsdo.onrender.com",
+    "http://localhost:3000",
+    "http://localhost:5173",
+]
+_extra = os.getenv("ALLOWED_ORIGINS", "")
+ALLOWED_ORIGINS = list(set(_PRODUCTION_ORIGINS + [o.strip() for o in _extra.split(",") if o.strip()]))
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,

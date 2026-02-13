@@ -1,0 +1,33 @@
+# RagsPro API Gateway — https://api.ragspro.com
+# Built by Bhupender Pratap & Raghav Shah at RagsPro (https://ragspro.com)
+
+User-agent: *
+Allow: /
+Allow: /docs
+Allow: /login
+Disallow: /dashboard
+
+# Sitemaps
+Sitemap: https://api.ragspro.com/sitemap.xml
+
+# AI Crawlers — Welcome!
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+User-agent: Anthropic-AI
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: Googlebot
+Allow: /

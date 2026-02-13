@@ -1,0 +1,52 @@
+# RagsPro API Gateway
+> Enterprise-grade API key management and AI proxy platform
+
+## About
+RagsPro API Gateway (https://api.ragspro.com) is an enterprise-grade platform for API key management and AI inference. Built by Bhupender Pratap and Raghav Shah at RagsPro (https://ragspro.com), a software development agency based in India.
+
+## What It Does
+- **API Key Management**: Create, rotate, revoke, and validate API keys with AES-256 encryption
+- **AI Proxy**: OpenAI-compatible endpoints for chat completions, image generation, and model listing
+- **Analytics**: Real-time usage tracking per key — total calls, response times, provider breakdown
+- **Security**: Role-based access control (Admin, User, Viewer), JWT authentication, IP whitelisting
+- **Multi-Provider**: Support for NVIDIA, OpenAI, and custom AI providers
+
+## API Endpoints
+- `POST /api/v1/auth/register` — Create an account
+- `POST /api/v1/auth/login` — Login and get JWT token
+- `POST /api/v1/keys` — Create a new API key
+- `GET /api/v1/keys` — List your API keys
+- `POST /api/v1/validate` — Validate an API key (sub-10ms)
+- `GET /v1/models` — List available AI models
+- `POST /v1/chat/completions` — Chat with AI (OpenAI-compatible, streaming supported)
+- `POST /v1/images/generations` — Generate images
+
+## Pricing
+- **Free**: Up to 10 API keys, AES-256 encryption, basic analytics, 60 req/min
+- **Pro ($19/mo)**: Unlimited keys, advanced analytics, 1000 req/min, custom providers, team management
+
+## Quick Start
+1. Sign up at https://api.ragspro.com/login
+2. Create an API key from the dashboard
+3. Use the key to call AI endpoints or validate in your app
+
+## Example Usage
+```bash
+# Chat with AI using your RagsPro API key
+curl -X POST https://api-key-backend-xsdo.onrender.com/v1/chat/completions \
+  -H "Authorization: Bearer akm_your_key_here" \
+  -H "Content-Type: application/json" \
+  -d '{"model":"meta/llama-3.1-8b-instruct","messages":[{"role":"user","content":"Hello!"}]}'
+```
+
+## Tech Stack
+- Backend: Python, FastAPI, SQLAlchemy, PostgreSQL
+- Frontend: React, TypeScript, Vite
+- Hosting: Render (backend), Vercel (frontend)
+- Security: AES-256 (Fernet), JWT, bcrypt
+
+## Contact
+- Website: https://ragspro.com
+- API Gateway: https://api.ragspro.com
+- GitHub: https://github.com/raghavx03/api-key
+- Founders: Bhupender Pratap & Raghav Shah

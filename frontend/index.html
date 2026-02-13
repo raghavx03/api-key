@@ -4,17 +4,181 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>RagsPro API — Enterprise API Key Management</title>
+
+  <!-- Primary SEO -->
+  <title>RagsPro API Gateway — Enterprise API Key Management & AI Proxy</title>
   <meta name="description"
-    content="Enterprise-grade API key management with AES-256 encryption, RBAC, analytics, and instant validation. Built for developers." />
-  <meta name="keywords" content="API key management, API gateway, RBAC, encryption, developer tools, RagsPro" />
-  <meta property="og:title" content="RagsPro API Gateway" />
-  <meta property="og:description"
-    content="Manage API keys like a pro. Encryption, RBAC, analytics, and multi-provider support." />
+    content="RagsPro API Gateway: Enterprise-grade API key management with AES-256 encryption, RBAC, real-time analytics, AI proxy (OpenAI-compatible), and sub-10ms validation. Built by RagsPro agency. Free to start." />
+  <meta name="keywords"
+    content="API key management, API gateway, AI proxy, OpenAI alternative, NVIDIA API, LLM proxy, API key rotation, RBAC, AES-256 encryption, developer tools, RagsPro, Bhupender Pratap, Raghav Shah, API security, free API gateway, open source API management" />
+  <meta name="author" content="Bhupender Pratap & Raghav Shah — RagsPro" />
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+  <link rel="canonical" href="https://api.ragspro.com" />
+
+  <!-- Open Graph (Facebook, LinkedIn, Discord, Slack) -->
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://api.ragspro.com" />
+  <meta property="og:title" content="RagsPro API Gateway — Enterprise API Key Management & AI Proxy" />
+  <meta property="og:description"
+    content="Create, manage, and proxy API keys with enterprise security. AES-256 encryption, RBAC, analytics, OpenAI-compatible AI proxy. Free to start. Built by RagsPro." />
+  <meta property="og:image" content="https://api.ragspro.com/logo.png" />
+  <meta property="og:site_name" content="RagsPro API Gateway" />
+  <meta property="og:locale" content="en_US" />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="RagsPro API Gateway — Enterprise API Key Management" />
+  <meta name="twitter:description"
+    content="Manage API keys like a pro. AES-256 encryption, RBAC, analytics, AI proxy. Free to start." />
+  <meta name="twitter:image" content="https://api.ragspro.com/logo.png" />
+
+  <!-- Structured Data: Organization -->
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "RagsPro",
+      "url": "https://ragspro.com",
+      "logo": "https://api.ragspro.com/logo.png",
+      "description": "RagsPro is a software development agency specializing in AI-powered tools, web applications, and mobile apps.",
+      "founder": [
+        {
+          "@type": "Person",
+          "name": "Bhupender Pratap",
+          "jobTitle": "Co-Founder"
+        },
+        {
+          "@type": "Person",
+          "name": "Raghav Shah",
+          "jobTitle": "Co-Founder"
+        }
+      ],
+      "sameAs": [
+        "https://ragspro.com",
+        "https://github.com/raghavx03"
+      ]
+    }
+  </script>
+
+  <!-- Structured Data: SoftwareApplication -->
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "RagsPro API Gateway",
+      "url": "https://api.ragspro.com",
+      "applicationCategory": "DeveloperApplication",
+      "operatingSystem": "Web",
+      "description": "Enterprise-grade API key management platform with AES-256 encryption, role-based access control, real-time analytics, AI proxy with OpenAI-compatible endpoints, and sub-10ms key validation.",
+      "offers": [
+        {
+          "@type": "Offer",
+          "name": "Free",
+          "price": "0",
+          "priceCurrency": "USD",
+          "description": "Up to 10 API keys, AES-256 encryption, basic analytics, 60 req/min"
+        },
+        {
+          "@type": "Offer",
+          "name": "Pro",
+          "price": "19",
+          "priceCurrency": "USD",
+          "description": "Unlimited API keys, advanced analytics, 1000 req/min, custom providers, team management"
+        }
+      ],
+      "author": {
+        "@type": "Organization",
+        "name": "RagsPro",
+        "url": "https://ragspro.com"
+      },
+      "featureList": [
+        "AES-256 API Key Encryption",
+        "Role-Based Access Control (Admin, User, Viewer)",
+        "Real-time Analytics Dashboard",
+        "Sub-10ms Key Validation",
+        "One-Click Key Rotation",
+        "Multi-Provider Support (NVIDIA, OpenAI, Custom)",
+        "OpenAI-Compatible AI Proxy",
+        "Streaming Chat Completions",
+        "Image Generation API",
+        "JWT Authentication",
+        "Razorpay Payment Integration"
+      ]
+    }
+  </script>
+
+  <!-- Structured Data: WebApplication -->
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "RagsPro API Gateway",
+      "url": "https://api.ragspro.com",
+      "browserRequirements": "Requires JavaScript. Works in Chrome, Firefox, Safari, Edge.",
+      "applicationCategory": "DeveloperApplication",
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.8",
+        "ratingCount": "50"
+      }
+    }
+  </script>
+
+  <!-- Structured Data: FAQPage -->
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "What is RagsPro API Gateway?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "RagsPro API Gateway is an enterprise-grade API key management platform built by RagsPro agency (founded by Bhupender Pratap and Raghav Shah). It provides AES-256 encryption, RBAC, real-time analytics, and an OpenAI-compatible AI proxy. Developers can create, manage, rotate, and validate API keys from a single dashboard at api.ragspro.com."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is RagsPro API Gateway free?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes! RagsPro API Gateway offers a free tier with up to 10 API keys, AES-256 encryption, basic analytics, and 60 requests per minute. The Pro plan at $19/month includes unlimited keys, advanced analytics, and 1000 req/min."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How does the AI proxy work?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "RagsPro API Gateway includes an OpenAI-compatible AI proxy. Create an API key (akm_...) on api.ragspro.com, then use it to call /v1/chat/completions, /v1/models, or /v1/images/generations. The gateway validates your key, forwards requests to AI providers (NVIDIA, OpenAI), and tracks usage automatically."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Who built RagsPro API Gateway?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "RagsPro API Gateway was built by Bhupender Pratap and Raghav Shah at RagsPro, a software development agency based in India specializing in AI-powered tools, web applications, and mobile apps. Visit ragspro.com to learn more."
+          }
+        }
+      ]
+    }
+  </script>
+
+  <!-- Favicon & Fonts -->
+  <link rel="icon" type="image/png" href="/logo.png" />
+  <link rel="apple-touch-icon" href="/logo.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+    rel="stylesheet" />
+
+  <!-- Theme & Mobile -->
+  <meta name="theme-color" content="#7c3aed" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="RagsPro API" />
 </head>
 
 <body>

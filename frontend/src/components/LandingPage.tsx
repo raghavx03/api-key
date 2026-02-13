@@ -266,14 +266,28 @@ export default function LandingPage() {
 
             {/* Footer */}
             <footer className="landing-footer">
+                <div className="footer-brand">
+                    <img src="/logo.png" alt="RagsPro" style={{ width: 28, height: 28, borderRadius: 6 }} />
+                    <span style={{ fontWeight: 700, fontSize: 16 }}>RagsPro API Gateway</span>
+                </div>
+                <p className="footer-tagline">
+                    Enterprise-grade API key management & AI proxy platform.
+                    <br />
+                    Built with ❤️ by <strong>Bhupender Pratap</strong> & <strong>Raghav Shah</strong> at{' '}
+                    <a href="https://ragspro.com" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-purple)', textDecoration: 'none', fontWeight: 600 }}>
+                        RagsPro
+                    </a>
+                </p>
                 <div className="footer-links">
                     <Link to="/docs">Documentation</Link>
                     <a href="https://github.com/raghavx03/api-key" target="_blank" rel="noopener noreferrer">GitHub</a>
                     <Link to="/login">Dashboard</Link>
-                    <a href="https://ragspro.com" target="_blank" rel="noopener noreferrer">RagsPro</a>
+                    <a href="https://ragspro.com" target="_blank" rel="noopener noreferrer">RagsPro Agency</a>
+                    <a href="/llms.txt">For AI</a>
+                    <a href="/sitemap.xml">Sitemap</a>
                 </div>
                 <p className="footer-copy">
-                    {new Date().getFullYear()} RagsPro. All rights reserved.
+                    © {new Date().getFullYear()} RagsPro. All rights reserved. | api.ragspro.com
                 </p>
             </footer>
         </div>

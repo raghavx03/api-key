@@ -1204,6 +1204,7 @@ AVAILABLE_MODELS = [
     {"id": "nvidia/llama-3.1-nemotron-70b-instruct", "object": "model", "owned_by": "nvidia", "type": "chat"},
     {"id": "google/gemma-2-9b-it", "object": "model", "owned_by": "google", "type": "chat"},
     {"id": "mistralai/mistral-7b-instruct-v0.3", "object": "model", "owned_by": "mistralai", "type": "chat"},
+    {"id": "moonshotai/kimi-k2.5", "object": "model", "owned_by": "moonshotai", "type": "chat"},
     {"id": "stabilityai/stable-diffusion-xl", "object": "model", "owned_by": "stabilityai", "type": "image"},
 ]
 

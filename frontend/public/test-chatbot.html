@@ -183,6 +183,26 @@
         .model-select option {
             background: #1a1a2e;
         }
+
+        /* Streaming cursor blink */
+        @keyframes blink {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0;
+            }
+        }
+
+        .streaming-cursor::after {
+            content: '▎';
+            animation: blink 0.7s infinite;
+            color: #7c3aed;
+            font-weight: bold;
+        }
     </style>
 </head>
 
@@ -205,7 +225,7 @@
                 <div class="bubble">Hello! I'm powered by RagsPro API Gateway. Ask me anything!</div>
             </div>
         </div>
-        <div id="status" class="status">✅ Connected to RagsPro API</div>
+        <div id="status" class="status">⚡ Streaming Mode — Instant responses</div>
         <div class="input-area">
             <input type="text" id="userInput" placeholder="Type a message..." autofocus />
             <button id="sendBtn" onclick="sendMessage()">Send</button>
@@ -220,7 +240,7 @@
         const API_KEY = 'akm_AWkNw4_elTfk4Sgly3truUAvQFNJHd_CA9Ch6UfpqL8';
 
         const history = [
-            { role: 'system', content: 'You are a helpful, friendly AI assistant powered by RagsPro API Gateway. Keep responses concise.' }
+            { role: 'system', content: 'You are a helpful, friendly AI assistant powered by RagsPro API Gateway. Keep responses concise and short.' }
         ];
 
         const messagesDiv = document.getElementById('messages');
@@ -241,11 +261,16 @@
             addMessage('user', message);
             userInput.value = '';
             sendBtn.disabled = true;
-            statusDiv.textContent = '⏳ Thinking...';
+            statusDiv.textContent = '⏳ Connecting...';
             statusDiv.className = 'status';
 
             // Add to history
             history.push({ role: 'user', content: message });
+
+            // Create AI bubble for streaming
+            const aiBubble = createEmptyAiBubble();
+            let fullReply = '';
+            let firstTokenTime = 0;
 
             try {
                 const startTime = Date.now();
@@ -259,8 +284,9 @@
                     body: JSON.stringify({
                         model: modelSelect.value,
                         messages: history,
-                        max_tokens: 500,
-                        temperature: 0.7
+                        max_tokens: 200,
+                        temperature: 0.7,
+                        stream: true
                     })
                 });
 
@@ -269,24 +295,57 @@
                     throw new Error(err.detail || `HTTP ${response.status}`);
                 }
 
-                const data = await response.json();
-                const reply = data.choices[0].message.content;
-                const elapsed = Date.now() - startTime;
-                const gateway = data._gateway || {};
+                const ttfb = Date.now() - startTime;
+                statusDiv.textContent = `⚡ First byte: ${ttfb}ms — Streaming...`;
+                aiBubble.classList.add('streaming-cursor');
+
+                // Read SSE stream
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop(); // Keep incomplete line in buffer
+
+                    for (const line of lines) {
+                        const trimmed = line.trim();
+                        if (!trimmed || !trimmed.startsWith('data: ')) continue;
+                        const data = trimmed.slice(6);
+                        if (data === '[DONE]') continue;
+
+                        try {
+                            const parsed = JSON.parse(data);
+                            const delta = parsed.choices?.[0]?.delta?.content;
+                            if (delta) {
+                                if (!firstTokenTime) firstTokenTime = Date.now() - startTime;
+                                fullReply += delta;
+                                aiBubble.innerHTML = escapeHtml(fullReply);
+                                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                            }
+                        } catch (e) { /* skip malformed chunks */ }
+                    }
+                }
+
+                aiBubble.classList.remove('streaming-cursor');
+                const totalTime = Date.now() - startTime;
 
                 // Add to history
-                history.push({ role: 'assistant', content: reply });
+                history.push({ role: 'assistant', content: fullReply });
 
-                // Show AI message
-                addMessage('ai', reply);
-
-                statusDiv.textContent = `✅ ${elapsed}ms | Model: ${modelSelect.value.split('/').pop()} | Provider: ${gateway.provider || 'nvidia'}`;
+                const model = modelSelect.value.split('/').pop();
+                statusDiv.textContent = `⚡ First token: ${firstTokenTime}ms | Total: ${totalTime}ms | Model: ${model} | Provider: nvidia`;
                 statusDiv.className = 'status';
 
             } catch (err) {
+                aiBubble.classList.remove('streaming-cursor');
                 statusDiv.textContent = `❌ Error: ${err.message}`;
                 statusDiv.className = 'status error';
-                addMessage('ai', `Sorry, I encountered an error: ${err.message}`);
+                if (!fullReply) aiBubble.textContent = `Sorry, error: ${err.message}`;
             }
 
             sendBtn.disabled = false;
@@ -302,6 +361,22 @@
             `;
             messagesDiv.appendChild(div);
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function createEmptyAiBubble() {
+            const div = document.createElement('div');
+            div.className = 'message ai';
+            const avatar = document.createElement('div');
+            avatar.className = 'avatar';
+            avatar.textContent = '🤖';
+            const bubble = document.createElement('div');
+            bubble.className = 'bubble';
+            bubble.textContent = '';
+            div.appendChild(avatar);
+            div.appendChild(bubble);
+            messagesDiv.appendChild(div);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            return bubble;
         }
 
         function escapeHtml(str) {

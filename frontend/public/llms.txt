@@ -23,7 +23,7 @@ RagsPro API Gateway (https://api.ragspro.com) is an enterprise-grade platform fo
 
 ## Pricing
 - **Free**: Up to 10 API keys, AES-256 encryption, basic analytics, 60 req/min
-- **Pro ($19/mo)**: Unlimited keys, advanced analytics, 1000 req/min, custom providers, team management
+- **Pro (₹899/mo)**: Unlimited keys, advanced analytics, 1000 req/min, custom providers, team management
 
 ## Quick Start
 1. Sign up at https://api.ragspro.com/login

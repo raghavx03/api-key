@@ -1,12 +1,30 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { AlertCircle, Info } from 'lucide-react'
+import { AlertCircle, Info, Copy, Check } from 'lucide-react'
 import './LandingPage.css'
 import './Docs.css'
 
-type Section = 'intro' | 'auth' | 'keys' | 'validate' | 'ai-proxy' | 'admin' | 'errors' | 'examples'
+type Section = 'intro' | 'auth' | 'keys' | 'validate' | 'ai-proxy' | 'admin' | 'errors' | 'examples' | 'chatbot' | 'image-gen'
 
 const API_URL = 'https://api-key-backend-xsdo.onrender.com'
+
+function CodeBlock({ code, label }: { code: string; label?: string }) {
+    const [copied, setCopied] = useState(false)
+    const handleCopy = () => {
+        navigator.clipboard.writeText(code)
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2000)
+    }
+    return (
+        <div style={{ position: 'relative' }}>
+            {label && <div className="code-label">{label}</div>}
+            <button className="copy-btn" onClick={handleCopy} title="Copy code">
+                {copied ? <><Check size={14} /> Copied!</> : <><Copy size={14} /> Copy</>}
+            </button>
+            <div className="doc-code-block">{code}</div>
+        </div>
+    )
+}
 
 export default function Docs() {
     const [section, setSection] = useState<Section>('intro')
@@ -29,6 +47,10 @@ export default function Docs() {
             <div className="docs-layout">
                 {/* Sidebar */}
                 <aside className="docs-sidebar">
+                    <h4>🚀 Ready-to-Use Code</h4>
+                    <button className={`sidebar-link ${section === 'chatbot' ? 'active' : ''}`} onClick={() => setSection('chatbot')}>AI Chatbot (Full Code)</button>
+                    <button className={`sidebar-link ${section === 'image-gen' ? 'active' : ''}`} onClick={() => setSection('image-gen')}>Image Generator</button>
+
                     <h4>Getting Started</h4>
                     <button className={`sidebar-link ${section === 'intro' ? 'active' : ''}`} onClick={() => setSection('intro')}>Introduction</button>
                     <button className={`sidebar-link ${section === 'auth' ? 'active' : ''}`} onClick={() => setSection('auth')}>Authentication</button>
@@ -46,6 +68,8 @@ export default function Docs() {
 
                 {/* Content */}
                 <main className="docs-content">
+                    {section === 'chatbot' && <ChatbotReadySection />}
+                    {section === 'image-gen' && <ImageGenReadySection />}
                     {section === 'intro' && <IntroSection />}
                     {section === 'auth' && <AuthSection />}
                     {section === 'keys' && <KeysSection />}
@@ -910,6 +934,408 @@ app.get('/api/data', requireApiKey, (req, res) => {
 });
 
 app.listen(3001, () => console.log('Server running on :3001'));`}</div>
+        </>
+    )
+}
+
+function ChatbotReadySection() {
+    const chatbotCode = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Chatbot — Powered by RagsPro</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: #0f0f1a; color: #e4e4f0;
+            min-height: 100vh; display: flex; flex-direction: column;
+            align-items: center; padding: 2rem;
+        }
+        h1 {
+            font-size: 1.5rem; margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, #a78bfa, #7c3aed);
+            -webkit-background-clip: text; background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .subtitle { color: #888; font-size: 0.85rem; margin-bottom: 1.5rem; }
+        .chat-container {
+            width: 100%; max-width: 700px; flex: 1; display: flex;
+            flex-direction: column; border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 16px; overflow: hidden;
+            background: rgba(255,255,255,0.03);
+        }
+        .messages {
+            flex: 1; overflow-y: auto; padding: 1.5rem;
+            min-height: 400px; max-height: 500px;
+        }
+        .message { margin-bottom: 1rem; display: flex; gap: 0.75rem; align-items: flex-start; }
+        .message.user { flex-direction: row-reverse; }
+        .avatar {
+            width: 32px; height: 32px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 14px; flex-shrink: 0;
+        }
+        .message.user .avatar { background: #7c3aed; }
+        .message.ai .avatar { background: #10b981; }
+        .bubble {
+            padding: 0.75rem 1rem; border-radius: 12px;
+            max-width: 80%; line-height: 1.6; font-size: 0.9rem;
+        }
+        .message.user .bubble { background: #7c3aed; color: white; border-bottom-right-radius: 4px; }
+        .message.ai .bubble {
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-bottom-left-radius: 4px;
+        }
+        .input-area { padding: 1rem; border-top: 1px solid rgba(255,255,255,0.08); display: flex; gap: 0.5rem; }
+        input {
+            flex: 1; background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 10px; padding: 0.75rem 1rem;
+            color: #e4e4f0; font-size: 0.9rem; outline: none;
+        }
+        input:focus { border-color: #7c3aed; }
+        button {
+            background: #7c3aed; color: white; border: none;
+            border-radius: 10px; padding: 0.75rem 1.25rem;
+            cursor: pointer; font-weight: 600; font-size: 0.9rem;
+        }
+        button:hover { background: #6d28d9; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .status { text-align: center; padding: 0.5rem; font-size: 0.75rem; color: #10b981; }
+        @keyframes blink { 0%,100% { opacity:1; } 50% { opacity:0; } }
+        .streaming-cursor::after {
+            content: '\\25CE'; animation: blink 0.7s infinite;
+            color: #7c3aed; font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>\\u{1F680} AI Chatbot</h1>
+    <p class="subtitle">Powered by RagsPro API Gateway</p>
+    <div class="chat-container">
+        <div class="messages" id="messages">
+            <div class="message ai">
+                <div class="avatar">\\u{1F916}</div>
+                <div class="bubble">Hello! Ask me anything!</div>
+            </div>
+        </div>
+        <div id="status" class="status">\\u26A1 Streaming Mode</div>
+        <div class="input-area">
+            <input type="text" id="userInput" placeholder="Type a message..." autofocus />
+            <button id="sendBtn" onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+    <script>
+        // \\u2550\\u2550\\u2550 PASTE YOUR API KEY HERE \\u2550\\u2550\\u2550
+        const API_URL = '${API_URL}';
+        const API_KEY = 'akm_YOUR_API_KEY_HERE';  // \\u2190 Replace this!
+
+        const history = [
+            { role: 'system', content: 'You are a helpful AI assistant. Keep responses concise.' }
+        ];
+        const messagesDiv = document.getElementById('messages');
+        const userInput = document.getElementById('userInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const statusDiv = document.getElementById('status');
+
+        userInput.addEventListener('keydown', e => {
+            if (e.key === 'Enter' && !sendBtn.disabled) sendMessage();
+        });
+
+        async function sendMessage() {
+            const message = userInput.value.trim();
+            if (!message) return;
+            addMessage('user', message);
+            userInput.value = '';
+            sendBtn.disabled = true;
+            statusDiv.textContent = '\\u23F3 Connecting...';
+            history.push({ role: 'user', content: message });
+
+            const aiBubble = createAiBubble();
+            let fullReply = '';
+            let firstTokenTime = 0;
+
+            try {
+                const startTime = Date.now();
+                const response = await fetch(API_URL + '/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer ' + API_KEY,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: 'meta/llama-3.1-8b-instruct',
+                        messages: history,
+                        max_tokens: 200,
+                        temperature: 0.7,
+                        stream: true
+                    })
+                });
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.detail || 'HTTP ' + response.status);
+                }
+                aiBubble.classList.add('streaming-cursor');
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\\n');
+                    buffer = lines.pop();
+                    for (const line of lines) {
+                        const trimmed = line.trim();
+                        if (!trimmed || !trimmed.startsWith('data: ')) continue;
+                        const data = trimmed.slice(6);
+                        if (data === '[DONE]') continue;
+                        try {
+                            const parsed = JSON.parse(data);
+                            const delta = parsed.choices?.[0]?.delta?.content;
+                            if (delta) {
+                                if (!firstTokenTime) firstTokenTime = Date.now() - startTime;
+                                fullReply += delta;
+                                aiBubble.innerHTML = escapeHtml(fullReply);
+                                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                            }
+                        } catch (e) {}
+                    }
+                }
+                aiBubble.classList.remove('streaming-cursor');
+                history.push({ role: 'assistant', content: fullReply });
+                statusDiv.textContent = '\\u26A1 ' + firstTokenTime + 'ms | Model: llama-3.1-8b';
+            } catch (err) {
+                aiBubble.classList.remove('streaming-cursor');
+                statusDiv.textContent = '\\u274C Error: ' + err.message;
+                if (!fullReply) aiBubble.textContent = 'Error: ' + err.message;
+            }
+            sendBtn.disabled = false;
+            userInput.focus();
+        }
+
+        function addMessage(role, content) {
+            const div = document.createElement('div');
+            div.className = 'message ' + role;
+            div.innerHTML = '<div class="avatar">' + (role==='user'?'\\u{1F464}':'\\u{1F916}') + '</div><div class="bubble">' + escapeHtml(content) + '</div>';
+            messagesDiv.appendChild(div);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function createAiBubble() {
+            const div = document.createElement('div');
+            div.className = 'message ai';
+            div.innerHTML = '<div class="avatar">\\u{1F916}</div>';
+            const bubble = document.createElement('div');
+            bubble.className = 'bubble';
+            div.appendChild(bubble);
+            messagesDiv.appendChild(div);
+            return bubble;
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\\n/g,'<br>');
+        }
+    </script>
+</body>
+</html>`
+
+    return (
+        <>
+            <h1>🤖 AI Chatbot — Ready to Use</h1>
+            <p className="docs-intro">
+                Copy this complete HTML file, paste your API key, save as <code>.html</code>, and open in any browser.
+                <strong> No setup, no npm, no framework needed.</strong> It just works.
+            </p>
+
+            <div className="docs-alert info">
+                <Info size={18} />
+                <span>
+                    <strong>3 Steps:</strong> (1) Go to <Link to="/dashboard">Dashboard</Link> → Create API Key → Copy it.
+                    (2) Paste it in the code below where it says <code>akm_YOUR_API_KEY_HERE</code>.
+                    (3) Save as <code>chatbot.html</code> → Open in browser. Done! ✅
+                </span>
+            </div>
+
+            <h2>Complete Chatbot Code</h2>
+            <CodeBlock code={chatbotCode} label="chatbot.html — Save this file and open in browser" />
+
+            <h2>How It Works</h2>
+            <ul>
+                <li><strong>Streaming (SSE)</strong> — Text appears word-by-word in real-time, like ChatGPT</li>
+                <li><strong>Model</strong> — Uses Meta Llama 3.1 8B (fastest). Change <code>model</code> in the code for others</li>
+                <li><strong>Conversation history</strong> — Remembers context across messages</li>
+                <li><strong>No backend needed</strong> — Calls RagsPro API directly from the browser</li>
+            </ul>
+
+            <h2>Available Models</h2>
+            <table className="params-table">
+                <thead><tr><th>Model ID</th><th>Speed</th><th>Best For</th></tr></thead>
+                <tbody>
+                    <tr><td><code>meta/llama-3.1-8b-instruct</code></td><td>⚡ Fastest</td><td>General chat, quick answers</td></tr>
+                    <tr><td><code>meta/llama-3.1-70b-instruct</code></td><td>🧠 Smart</td><td>Complex reasoning, coding</td></tr>
+                    <tr><td><code>nvidia/llama-3.1-nemotron-70b-instruct</code></td><td>🏆 Best</td><td>Highest quality responses</td></tr>
+                    <tr><td><code>google/gemma-2-9b-it</code></td><td>⚡ Fast</td><td>Lightweight, efficient</td></tr>
+                    <tr><td><code>mistralai/mistral-7b-instruct-v0.3</code></td><td>⚡ Fast</td><td>Multilingual</td></tr>
+                </tbody>
+            </table>
+
+            <h2>Troubleshooting</h2>
+            <table className="params-table">
+                <thead><tr><th>Error</th><th>Solution</th></tr></thead>
+                <tbody>
+                    <tr><td><code>401 Unauthorized</code></td><td>Your API key is wrong. Go to Dashboard → Copy the key again</td></tr>
+                    <tr><td><code>CORS error</code></td><td>Open the HTML file directly in browser (don't use file://)</td></tr>
+                    <tr><td><code>Slow first response</code></td><td>Normal — server wakes up on first request (~10s). Next ones are fast (~1s)</td></tr>
+                    <tr><td><code>Network error</code></td><td>Check your internet connection. The API server may be starting up</td></tr>
+                </tbody>
+            </table>
+        </>
+    )
+}
+
+function ImageGenReadySection() {
+    const pythonImageCode = `import requests
+import base64
+import os
+
+# ═══ PASTE YOUR API KEY HERE ═══
+API_KEY = "akm_YOUR_API_KEY_HERE"  # ← Replace this!
+API_URL = "${API_URL}"
+
+def generate_image(prompt, filename="generated_image.png"):
+    """Generate an image from a text prompt using RagsPro API."""
+    print(f"Generating: {prompt}...")
+    
+    response = requests.post(
+        f"{API_URL}/v1/images/generations",
+        headers={
+            "Authorization": f"Bearer {API_KEY}",
+            "Content-Type": "application/json"
+        },
+        json={
+            "model": "stabilityai/stable-diffusion-xl",
+            "prompt": prompt
+        }
+    )
+    
+    if response.status_code != 200:
+        print(f"Error: {response.json()}")
+        return None
+    
+    data = response.json()
+    image_b64 = data["data"][0]["b64_json"]
+    
+    # Save image
+    with open(filename, "wb") as f:
+        f.write(base64.b64decode(image_b64))
+    
+    print(f"Image saved to {filename}")
+    return filename
+
+# Usage — just run this script!
+generate_image("A futuristic city skyline at sunset, cyberpunk style")
+generate_image("A cute cat wearing sunglasses on a beach", "cat.png")`
+
+    const jsImageCode = `// ═══ PASTE YOUR API KEY HERE ═══
+const API_KEY = 'akm_YOUR_API_KEY_HERE';  // ← Replace this!
+const API_URL = '${API_URL}';
+
+async function generateImage(prompt) {
+    console.log('Generating:', prompt);
+    
+    const response = await fetch(API_URL + '/v1/images/generations', {
+        method: 'POST',
+        headers: {
+            'Authorization': 'Bearer ' + API_KEY,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            model: 'stabilityai/stable-diffusion-xl',
+            prompt: prompt
+        })
+    });
+    
+    if (!response.ok) {
+        console.error('Error:', await response.json());
+        return null;
+    }
+    
+    const data = await response.json();
+    const imageBase64 = data.data[0].b64_json;
+    
+    // Display in browser
+    const img = document.createElement('img');
+    img.src = 'data:image/png;base64,' + imageBase64;
+    img.style.maxWidth = '512px';
+    img.style.borderRadius = '12px';
+    document.body.appendChild(img);
+    
+    return imageBase64;
+}
+
+// Usage
+generateImage('A futuristic city skyline at sunset');`
+
+    const curlImageCode = `curl -X POST ${API_URL}/v1/images/generations \\
+  -H "Authorization: Bearer akm_YOUR_API_KEY_HERE" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "model": "stabilityai/stable-diffusion-xl",
+    "prompt": "A futuristic city skyline at sunset"
+  }'
+
+# Response:
+{
+  "data": [
+    {
+      "b64_json": "iVBORw0KGgo...",  ← Base64 image data
+      "index": 0
+    }
+  ]
+}`
+
+    return (
+        <>
+            <h1>🎨 Image Generator — Ready to Use</h1>
+            <p className="docs-intro">
+                Generate images from text prompts using Stable Diffusion XL via RagsPro API.
+                Copy the code below, paste your API key, and run it.
+            </p>
+
+            <div className="docs-alert info">
+                <Info size={18} />
+                <span>
+                    <strong>Steps:</strong> (1) Go to <Link to="/dashboard">Dashboard</Link> → Create API Key → Copy it.
+                    (2) Replace <code>akm_YOUR_API_KEY_HERE</code> in the code below.
+                    (3) Run the script. That's it!
+                </span>
+            </div>
+
+            <h2>Python — Save & Run</h2>
+            <CodeBlock code={pythonImageCode} label="image_gen.py — Run with: python image_gen.py" />
+
+            <h2>JavaScript (Browser)</h2>
+            <CodeBlock code={jsImageCode} label="Paste in browser console or add to your HTML" />
+
+            <h2>cURL</h2>
+            <CodeBlock code={curlImageCode} label="Run in terminal" />
+
+            <h2>Response Format</h2>
+            <p>The API returns a base64-encoded PNG image in <code>data[0].b64_json</code>. You need to decode it:</p>
+            <ul>
+                <li><strong>Python:</strong> <code>base64.b64decode(b64_json)</code> → save as .png file</li>
+                <li><strong>JavaScript:</strong> <code>{'`data:image/png;base64,${b64_json}`'}</code> → set as img src</li>
+                <li><strong>cURL:</strong> pipe to <code>base64 -d &gt; image.png</code></li>
+            </ul>
+
+            <div className="docs-alert warning">
+                <AlertCircle size={18} />
+                <span>Image generation takes 10-30 seconds depending on server load. Don't refresh — wait for it!</span>
+            </div>
         </>
     )
 }

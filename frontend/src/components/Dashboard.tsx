@@ -646,7 +646,7 @@ export default function Dashboard() {
                 ))}
               </div>
               <div className="upgrade-price">
-                <span className="price-amount">₹1,599</span>
+                <span className="price-amount">₹899</span>
                 <span className="price-period">/month</span>
               </div>
               <button

@@ -1087,7 +1087,7 @@ class VerifyPaymentRequest(BaseModel):
     razorpay_signature: str
 
 PLAN_PRICES = {
-    "pro": {"amount": 159900, "currency": "INR", "description": "RagsPro API Pro Plan — Monthly"},
+    "pro": {"amount": 89900, "currency": "INR", "description": "RagsPro API Pro Plan — Monthly"},
 }
 
 @app.get("/api/v1/billing/plan", tags=["Billing"])

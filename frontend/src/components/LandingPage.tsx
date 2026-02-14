@@ -240,7 +240,7 @@ export default function LandingPage() {
                     <div className="pricing-card popular">
                         <div className="pricing-badge">Most Popular</div>
                         <div className="pricing-name">Pro</div>
-                        <div className="pricing-price">$19<span>/mo</span></div>
+                        <div className="pricing-price">₹899<span>/mo</span></div>
                         <div className="pricing-period">Billed monthly</div>
                         <ul className="pricing-features">
                             {[
